@@ -93,10 +93,13 @@ export async function addPurchaseOrderItems({ db, poId, items }) {
 
 export async function removePurchaseOrderItem({ db, poIdOrItemId, itemIdMaybe }) {
   const useScopedDelete = typeof itemIdMaybe === 'string';
+  // R9（发现 9）：草稿校验下沉到 DELETE 谓词，消除 check-then-act 窗口
   const sql = useScopedDelete
-    ? `DELETE FROM purchase_order_items WHERE id = ? AND po_id = ?`
+    ? `DELETE FROM purchase_order_items
+       WHERE id = ? AND po_id = ?
+         AND EXISTS (SELECT 1 FROM purchase_orders po WHERE po.id = ? AND po.status = 'draft')`
     : `DELETE FROM purchase_order_items WHERE id = ?`;
-  const params = useScopedDelete ? [itemIdMaybe, poIdOrItemId] : [poIdOrItemId];
+  const params = useScopedDelete ? [itemIdMaybe, poIdOrItemId, poIdOrItemId] : [poIdOrItemId];
 
   const statements = useScopedDelete
     ? [
@@ -132,9 +135,15 @@ export async function updatePurchaseOrderItem({ db, poIdOrItemId, itemIdOrUpdate
 
   if (fields.length === 0) return false;
 
-  const where = scoped ? 'WHERE id = ? AND po_id = ?' : 'WHERE id = ?';
+  // R9（发现 9）：草稿状态守卫并入 UPDATE 谓词——batch 外 requireDraft 校验
+  // 通过后、UPDATE 提交前，并发请求可能已把 PO 推进到 ordered，无守卫时
+  // 已下单的明细数量/单价仍会被修改
+  const where = scoped
+    ? `WHERE id = ? AND po_id = ?
+         AND EXISTS (SELECT 1 FROM purchase_orders po WHERE po.id = ? AND po.status = 'draft')`
+    : 'WHERE id = ?';
   if (scoped) {
-    values.push(itemId, poId);
+    values.push(itemId, poId, poId);
   } else {
     values.push(itemId);
   }

@@ -97,6 +97,17 @@
           @update:model-value="updateField('quantity', Number($event || 0))"
         />
         <AppInput
+          v-if="!isBindingLocked"
+          :model-value="modelValue.unitPrice ?? ''"
+          type="number"
+          min="0"
+          step="0.01"
+          :label="t('order.form.unitPrice', '单价（元）')"
+          :placeholder="t('order.form.unitPricePlaceholder', '选填，未填按 0 计应收')"
+          :data-testid="`order-line-unit-price-${index}`"
+          @update:model-value="updateField('unitPrice', $event)"
+        />
+        <AppInput
           :model-value="modelValue.color"
           :label="t('order.form.color')"
           :disabled="isBindingLocked"
@@ -183,7 +194,13 @@ const summaryText = computed(() => {
 const updateField = (field, value) => {
   emit('update:modelValue', {
     ...props.modelValue,
-    [field]: field === 'quantity' ? Math.max(1, Math.trunc(Number(value || 0) || 1)) : value,
+    // R2（F2）：单价仅手工行可填，保留两位小数；清空输入置 null
+    [field]:
+      field === 'quantity'
+        ? Math.max(1, Math.trunc(Number(value || 0) || 1))
+        : field === 'unitPrice'
+          ? (value === '' || value === null ? null : Math.round(Number(value) * 100) / 100)
+          : value,
   });
 };
 
@@ -239,6 +256,8 @@ const handleProductSelect = (product) => {
     quantity: Math.max(1, Math.trunc(Number(props.modelValue.quantity || 1) || 1)),
     productId: product.id || null,
     variantId: variant.id || null,
+    // R2（F2）：绑定变体后清空手工单价，价格以变体售价为准
+    unitPrice: null,
     boundProduct: {
       id: product.id,
       name: product.name,

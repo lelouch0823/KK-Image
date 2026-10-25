@@ -21,6 +21,13 @@ const RESOURCE_LOCK_DEFINITIONS = {
     commandType: 'purchase_pre_order_lock',
     conflictMessage: '该预订单正在被其他采购操作处理，请刷新后重试',
   },
+  // 审查发现 6：手动成本分摊的互斥锁——两个并发 allocate 各自反解上一次
+  // 分摊（batch 外读），后提交者会把 MAC 成本双重扣减。同 PO 的并发
+  // allocate 在锁上冲突，与收货/冲销的幂等协议互补
+  purchase_order_allocate: {
+    commandType: 'purchase_order_allocate_lock',
+    conflictMessage: '该采购单的成本分摊正在执行中，请稍后重试',
+  },
 };
 
 function normalizeResourceIds(resourceIds = []) {

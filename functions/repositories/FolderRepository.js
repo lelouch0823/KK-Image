@@ -253,28 +253,36 @@ export class FolderRepository {
   }
 
   /**
-   * 递归获取目录下所有文件的存储 Key (SOTA: 使用 WITH RECURSIVE 一次查询)
+   * 递归获取目录（含全部子目录）下的文件行：id + content_hash + storage_key。
+   *
+   * 彻底删除必须按"文件行粒度"清账（审查 C-F1）：CAS 架构下 storage_key 即
+   * content_hash，多个目录的文件可共享同一 R2 对象（blobs.ref_count 计数）。
+   * 裸删 storage_key 会连带销毁其他目录仍在引用的共享对象；必须逐行走
+   * decrementRefCount 认领式删除（引用归零才删 R2）。无 content_hash 的
+   * fallback key 才允许直接删除（独占对象）。
    */
-  async getAllStorageKeysRecursive(folderId) {
+  async getAllFilesRecursive(folderId) {
     const { results } = await this.db
       .prepare(
         `
             WITH RECURSIVE descendant_folders AS (
                 SELECT id FROM folders WHERE id = ?
-                
+
                 UNION ALL
-                
+
                 SELECT f.id
                 FROM folders f
                 JOIN descendant_folders df ON f.parent_id = df.id
             )
-            SELECT storage_key FROM files WHERE folder_id IN (SELECT id FROM descendant_folders)
+            SELECT id, content_hash, storage_key
+            FROM files
+            WHERE folder_id IN (SELECT id FROM descendant_folders)
         `
       )
       .bind(folderId)
       .all();
 
-    return results.map((f) => f.storage_key);
+    return results;
   }
 
   /**
@@ -452,13 +460,19 @@ export class FolderRepository {
     const expiresAtTs = expiresAt ? new Date(expiresAt).getTime() : null;
     const timestamp = Date.now();
 
-    const hashedPassword = await encodeSharePasswordForStorage(password, pepper);
+    // C-R7（C-F8）：password === undefined 时不动密码列——API 调用方只想改
+    // 过期时间却把加密分享静默清空的旧语义是越权面扩大；显式 null 才清空
+    const setClauses = ['is_public = ?', 'share_expires_at = ?', 'updated_at = ?'];
+    const values = [isPublic ? 1 : 0, expiresAtTs, timestamp];
+    if (password !== undefined) {
+      setClauses.splice(1, 0, 'password = ?');
+      values.splice(1, 0, await encodeSharePasswordForStorage(password, pepper));
+    }
+    values.push(id);
 
     await this.db
-      .prepare(
-        'UPDATE folders SET is_public = ?, password = ?, share_expires_at = ?, updated_at = ? WHERE id = ?'
-      )
-      .bind(isPublic ? 1 : 0, hashedPassword, expiresAtTs, timestamp, id)
+      .prepare(`UPDATE folders SET ${setClauses.join(', ')} WHERE id = ?`)
+      .bind(...values)
       .run();
 
     return this.db

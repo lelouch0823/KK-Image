@@ -201,7 +201,10 @@ export class InventoryDashboardRepository {
       FROM inventory_events ie
       LEFT JOIN product_variants pv ON pv.id = ie.variant_id
       LEFT JOIN products p ON p.id = pv.product_id
-      WHERE ie.event_type IN ('order_shipment', 'inventory_allocated_to_order_line')
+      -- R15.4（发现 18）：移除 inventory_allocated_to_order_line 死条件——
+      -- B1 单一写入者模型下行级 reserve 不写 inventory_events（全库无该
+      -- event_type 的写入方），出库排行只统计真实出库事件
+      WHERE ie.event_type IN ('order_shipment')
         AND ie.quantity_delta < 0
         AND ie.occurred_at >= ?
       GROUP BY ie.variant_id

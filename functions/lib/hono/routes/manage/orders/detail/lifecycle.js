@@ -6,7 +6,7 @@ import {
 } from '../../../../schemas/order.js';
 import { OrderRepository } from '../../../../../../repositories/OrderRepository.js';
 import { MSG } from '../../../../../../_shared/utils.js';
-import { NotFoundError, BadRequestError } from '../../../../errors.js';
+import { NotFoundError, BadRequestError, ConflictError } from '../../../../errors.js';
 import { assertAdminFull } from '../authz-helpers.js';
 import { requireEntity } from '../../../../_shared/route-helpers.js';
 import { OrderDeliveryService } from '../../../../../../services/OrderDeliveryService.js';
@@ -315,6 +315,23 @@ app.delete('/:id', async (c) => {
     throw new BadRequestError(
       `订单处于 ${order.status} 状态，仍持有库存需求预留，无法彻底删除；` +
         '请先将订单作废（void）释放预留后再删除'
+    );
+  }
+
+  // R7（F7）：存在收款/退款流水的订单不可硬删除——payments 对 orders 是
+  // ON DELETE CASCADE，硬删除会物理抹掉资金往来记录（收款、退款、时间轴），
+  // 只剩一条审计事件，对账断层且不可恢复。资金订单请保留 void 状态或先
+  // 导出线下归档
+  const paymentCountRow = await env.DB.prepare(
+    'SELECT COUNT(*) AS count FROM payments WHERE order_id = ?'
+  )
+    .bind(id)
+    .first();
+  const paymentCount = Number(paymentCountRow?.count) || 0;
+  if (paymentCount > 0) {
+    throw new ConflictError(
+      `订单存在 ${paymentCount} 条收款/退款记录，无法彻底删除（资金流水不可逆丢失）；` +
+        '请将订单作废保留流水，如需清理请先导出归档并线下确认'
     );
   }
 

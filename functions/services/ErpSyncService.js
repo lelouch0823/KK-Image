@@ -8,6 +8,7 @@ import { ErpAdapterFactory } from './ErpAdapter.js';
 import { OutboxRuntimeStateRepository } from '../repositories/OutboxRuntimeStateRepository.js';
 import { hashSecret } from '../repositories/OAuthRepository.js';
 import { timingSafeCompare } from '../api/utils/crypto.js';
+import { BadRequestError } from '../lib/hono/errors.js';
 
 function createWebhookError(message, statusCode = 400) {
   const error = new Error(message);
@@ -28,7 +29,14 @@ function bytesToBase64(bytes) {
 }
 
 export class ErpSyncService {
-  constructor({ erpRepo, productRepo = null, customerRepo = null, orderRepo = null }) {
+  /**
+   * @param {Object} deps
+   * @param {D1Database} [deps.db] - D1 句柄（syncAll 租约 / webhook 去重必需，
+   *   审查发现 3：旧构造器漏收该参数，this.db 恒 undefined，全量同步 100%
+   *   崩溃、webhook 去重被可选链静默跳过）
+   */
+  constructor({ db = null, erpRepo, productRepo = null, customerRepo = null, orderRepo = null }) {
+    this.db = db;
     this.erpRepo = erpRepo;
     this.productRepo = productRepo;
     this.customerRepo = customerRepo;
@@ -54,6 +62,17 @@ export class ErpSyncService {
     const connection = await this.erpRepo.getConnectionById(connectionId);
     if (!connection) throw new Error('连接不存在');
     if (!connection.enabled) throw new Error('连接已禁用');
+    // 审查发现 3：租约依赖 this.db——缺失时给出可诊断的错误而非 undefined 崩溃
+    if (!this.db) {
+      throw new Error('ErpSyncService 缺少 db 句柄，无法执行同步（装配错误）');
+    }
+
+    // R8（发现 8）：拉取方向未实现（_createLocalEntity 等为占位 throw），
+    // pull/bidirectional 会把每个实体记 failed——入口显式拒绝并引导配置 push
+    const syncDirection = direction || connection.syncDirection;
+    if (syncDirection === 'pull' || syncDirection === 'bidirectional') {
+      throw new BadRequestError('ERP 拉取方向尚未实现，请将连接的同步方向配置为推送（push）');
+    }
 
     // C-M3：同步运行租约——两个 cron/管理员并发触发同一连接时第二个直接失败，
     // 防止同一批实体被推送 ERP 两次、同步状态互相覆盖。租约 5 分钟自动过期自愈。
@@ -68,7 +87,6 @@ export class ErpSyncService {
     }
 
     try {
-      const syncDirection = direction || connection.syncDirection;
       const results = {};
 
       for (const entityType of entityTypes) {
@@ -126,18 +144,23 @@ export class ErpSyncService {
     let failed = 0;
 
     for (const entity of entities) {
+      // 审查发现 7：push 前查既有映射——已同步过的实体走更新，避免每次
+      // 全量同步在对端 ERP 重复创建
+      const existingMapping = await this.erpRepo.getMapping(connection.id, entityType, entity.id);
+      const mappedErpId = existingMapping?.erp_id || null;
+
       const logId = await this.erpRepo.createSyncLog({
         connectionId: connection.id,
         entityType,
         entityId: entity.id,
         direction: 'push',
-        action: 'update',
+        action: mappedErpId ? 'update' : 'create',
         requestPayload: entity,
       });
 
       try {
         const pushMethod = this._getPushMethod(adapter, entityType);
-        const result = await pushMethod(entity);
+        const result = await pushMethod(entity, { erpId: mappedErpId });
 
         await this.erpRepo.upsertMapping({
           connectionId: connection.id,
@@ -284,8 +307,11 @@ export class ErpSyncService {
 
     // C-M3：webhook 事件去重——ERP 重发同一事件时直接幂等应答。
     // 事件键优先取 payload.event_id，缺失时用请求体哈希（同内容重发=同键）。
-    // 无 DB 句柄（测试/降级装配）时跳过去重。
-    if (typeof this.db?.prepare === 'function') {
+    // 生产装配必须注入 db（审查发现 3：旧实现静默跳过=去重失效，ERP 重发
+    // 同一事件会重复落库）；缺失时告警而非无声降级。
+    if (!this.db || typeof this.db.prepare !== 'function') {
+      console.warn('[ErpSync] webhook dedupe skipped: no db handle injected');
+    } else {
       const eventKey =
         String(payload.event_id || '').trim() || (await hashSecret(`${connectionId}:${rawBody}`));
       const dedupeResult = await this.db
@@ -348,11 +374,23 @@ export class ErpSyncService {
   }
 
   async _getLocalEntities(entityType) {
+    // 审查发现 7：分页拉全——旧实现固定 limit=100/page=1，第 101 条起的
+    // 商品静默不同步且无截断提示。逐页循环直到不满一页；上限 50 页
+    //（5000 实体）防御异常数据集把同步拖死。
+    // customer/order 的 listAll/listRecent 仓库方法未实现（条件守卫返回
+    // 空数组），属模块既有状态，不在本次修复范围
     const limit = 100;
+    const MAX_PAGES = 50;
     if (entityType === 'product') {
       if (!this.productRepo) throw new Error('productRepo 未注入，无法同步商品');
-      const result = await this.productRepo.search({ limit, page: 1, status: 'active' });
-      return result.data || [];
+      const entities = [];
+      for (let page = 1; page <= MAX_PAGES; page += 1) {
+        const result = await this.productRepo.search({ limit, page, status: 'active' });
+        const batch = result?.data || [];
+        entities.push(...batch);
+        if (batch.length < limit) break;
+      }
+      return entities;
     }
     if (entityType === 'customer') {
       if (!this.customerRepo) throw new Error('customerRepo 未注入，无法同步客户');

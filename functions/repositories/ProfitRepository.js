@@ -66,6 +66,7 @@ export class ProfitRepository {
         ol.id AS order_line_id,
         ol.snapshot_name,
         ol.ordered_qty,
+        ol.cancelled_qty,
         ol.product_id,
         ol.variant_id,
         COALESCE(ol.unit_price, pv.price) AS variant_price,
@@ -77,7 +78,10 @@ export class ProfitRepository {
       INNER JOIN orders o ON o.id = ol.order_id
       LEFT JOIN product_variants pv ON pv.id = ol.variant_id
       ${purchaseOrderItemCostJoinClause()}
-      WHERE ol.order_id = ? AND o.archived_at IS NULL
+      WHERE ol.order_id = ?
+        AND o.archived_at IS NULL
+        -- R8（F8）：作废/驳回订单不计利润（与 OrderStatsRepository 口径对齐）
+        AND o.status NOT IN ('void', 'rejected')
       ORDER BY ol.created_at ASC
       `,
       [orderId],
@@ -95,7 +99,9 @@ export class ProfitRepository {
    * @returns {Promise<Array>}
    */
   async findOrderLinesForProfitSummary(filters = {}) {
-    let whereClause = 'o.archived_at IS NULL';
+    // R8（F8）：默认排除 void/rejected（显式 status 过滤时以调用方为准，
+    // 但 void/rejected 始终排除——利润统计不应包含作废单）
+    let whereClause = "o.archived_at IS NULL AND o.status NOT IN ('void', 'rejected')";
     const params = [];
 
     if (filters.startTimestamp) {
@@ -118,6 +124,7 @@ export class ProfitRepository {
         o.id AS order_id,
         ol.id AS order_line_id,
         ol.ordered_qty,
+        ol.cancelled_qty,
         ol.product_id,
         ol.variant_id,
         COALESCE(ol.unit_price, pv.price) AS variant_price,
@@ -143,7 +150,9 @@ export class ProfitRepository {
    * @returns {Promise<Array>}
    */
   async findOrderLinesForProfitByProduct(filters = {}) {
-    let whereClause = 'o.archived_at IS NULL';
+    // R8（F8）：利润统计排除作废/驳回订单，数量取净数量（cancelled_qty 由
+    // 服务层扣减）
+    let whereClause = "o.archived_at IS NULL AND o.status NOT IN ('void', 'rejected')";
     const params = [];
 
     if (filters.startTimestamp) {
@@ -161,6 +170,7 @@ export class ProfitRepository {
       SELECT
         ol.snapshot_name AS product_name,
         ol.ordered_qty,
+        ol.cancelled_qty,
         ol.product_id,
         ol.variant_id,
         COALESCE(ol.unit_price, pv.price) AS variant_price,
@@ -192,6 +202,7 @@ export class ProfitRepository {
       SELECT
         ${chinaDateExprAliased('o')} AS date,
         ol.ordered_qty,
+        ol.cancelled_qty,
         ol.product_id,
         ol.variant_id,
         COALESCE(ol.unit_price, pv.price) AS variant_price,
@@ -204,6 +215,7 @@ export class ProfitRepository {
       LEFT JOIN product_variants pv ON pv.id = ol.variant_id
       ${purchaseOrderItemCostJoinClause()}
       WHERE o.archived_at IS NULL
+        AND o.status NOT IN ('void', 'rejected')
         AND o.created_at >= ?
       `,
       [startTimestamp],

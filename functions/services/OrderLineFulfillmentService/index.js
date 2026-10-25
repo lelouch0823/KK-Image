@@ -192,16 +192,57 @@ export class OrderLineFulfillmentService {
     const statements = [
       buildGuardedLineProjectionStatement(this.db, line, nextLineState, timestamp),
       buildPreviousWriteAssertionStatement(this.db),
-      this.allocationRepo.createInsertStatement({
-        id: this.uuid(),
-        order_line_id: lineId,
-        variant_id: line.variant_id,
-        inventory_event_id: null,
-        allocated_qty: quantity,
-        allocated_at: timestamp,
-        created_at: timestamp,
-        updated_at: timestamp,
-      }),
+      // R6（F6）：容量仲裁下沉到 batch 内——INSERT..SELECT 的 WHERE 谓词在
+      // 语句执行时点汇总全部并发预留的承诺量（其他行的活跃 allocation +
+      // 本行已有的活跃 allocation + 本次请求），并以执行时点的池值
+      // MAX(本行 ready, available) 为上限。B1 单一写入者模型下行级命令不
+      // 触碰 inventory_balances（只读池值），两个并发 reserve(5) 在
+      // available=5 上只有第一个能命中插入，第二个 0 行 → runGuardedBatch
+      // 断言失败回滚（消除 batch 外预检的 TOCTOU 超订窗口）。
+      // 注意"本行已有承诺"计入上限两侧（等式两边同加）——本行的既有预留
+      // 不应挤占本行自己的追加预留容量。
+      this.db
+        .prepare(
+          `INSERT INTO order_line_allocations (
+            id, order_line_id, variant_id, inventory_event_id,
+            allocated_qty, released_qty, status,
+            allocated_at, released_at, created_at, updated_at
+          )
+          SELECT ?, ?, ?, NULL, ?, 0, 'active', ?, NULL, ?, ?
+          WHERE (
+            SELECT COALESCE(SUM(a.allocated_qty - a.released_qty), 0)
+            FROM order_line_allocations a
+            WHERE a.variant_id = ? AND a.status = 'active' AND a.order_line_id != ?
+          ) + ? <= (
+            SELECT MAX(?, COALESCE(MAX(0, ib.on_hand - ib.reserved), 0))
+            FROM inventory_balances ib WHERE ib.variant_id = ?
+          ) + (
+            SELECT COALESCE(SUM(a2.allocated_qty - a2.released_qty), 0)
+            FROM order_line_allocations a2
+            WHERE a2.variant_id = ? AND a2.status = 'active' AND a2.order_line_id = ?
+          )`
+        )
+        .bind(
+          this.uuid(),
+          lineId,
+          line.variant_id,
+          quantity,
+          timestamp,
+          timestamp,
+          timestamp,
+          // 谓词（全部在语句执行时点求值）：其他行承诺 + 本次请求
+          // ≤ MAX(本行 ready, 池 available) + 本行已有承诺
+          line.variant_id,
+          lineId,
+          quantity,
+          readyQuantity,
+          line.variant_id,
+          line.variant_id,
+          lineId
+        ),
+      // R6：INSERT..SELECT 0 行（容量仲裁拒绝）必须回滚——紧随 changes()=1
+      // 断言，与第 1 条 guarded projection 的断言模式一致
+      buildPreviousWriteAssertionStatement(this.db),
       buildOrderTouchStatement(this.db, orderId, timestamp),
       ...buildOutboxStatements(this.domainOutboxRepo, this.uuid, {
         order: line,
@@ -215,7 +256,11 @@ export class OrderLineFulfillmentService {
       }),
     ];
 
-    await runGuardedBatch(this.db, statements, '订单行已被并发修改，或可用库存不足以完成预留');
+    await runGuardedBatch(
+      this.db,
+      statements,
+      '订单行已被并发修改，或可用库存不足以完成预留（可能已被其他订单行预留）'
+    );
     return buildCommandResult({
       orderId,
       lineId,
@@ -332,6 +377,7 @@ export class OrderLineFulfillmentService {
     if (reservedConsumed > 0) {
       const activeAllocations = await this.allocationRepo.listActiveByOrderLine(lineId);
       let remainingToRelease = reservedConsumed;
+      let releasedTotal = 0;
       for (const allocation of activeAllocations) {
         if (remainingToRelease <= 0) break;
         const releasable = getAllocationRemaining(allocation);
@@ -345,6 +391,17 @@ export class OrderLineFulfillmentService {
           })
         );
         remainingToRelease -= releaseQty;
+        releasedTotal += releaseQty;
+      }
+      // R11（F15）：reserved_qty 与活跃 allocation 漂移告警——allocation 按
+      // 剩余量封顶释放，若两者已背离（历史数据），残余量无人认领且无痕迹；
+      // 记录对账线索供人工核对（不改写数据，漂移只能经对账修复）
+      if (remainingToRelease > 0) {
+        console.warn(
+          `[OrderLineFulfillment] reservation drift on ship: line=${lineId} ` +
+            `reservedConsumed=${reservedConsumed} allocationsReleased=${releasedTotal} ` +
+            `unreleased=${remainingToRelease}; reserved_qty vs active allocations drifted — needs reconciliation`
+        );
       }
     }
 
@@ -607,7 +664,12 @@ export class OrderLineFulfillmentService {
     }
 
     const timestamp = this.now();
-    const nextReturnedQty = await queryReturnedQuantity(this.db, lineId);
+    // R10（F10）：queryReturnedQuantity 在退货被置 cancelled 之前执行，计数
+    // 仍包含本次冲正的退货——事件负载应反映冲正后的数量（减去本次 quantity）
+    const nextReturnedQty = Math.max(
+      (await queryReturnedQuantity(this.db, lineId)) - quantity,
+      0
+    );
     const nextLineState = buildNextLineState(line);
     const nextOrderDeliveryStatus = await queryDerivedDeliveryStatus(this.db, orderId, -quantity);
 

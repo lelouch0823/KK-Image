@@ -34,13 +34,15 @@ export class OrderLineRepository {
           display_status,
           created_at,
           updated_at
-        ) VALUES (?, ?, ?, ?, (SELECT price FROM product_variants WHERE id = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ) VALUES (?, ?, ?, ?, COALESCE(?, (SELECT price FROM product_variants WHERE id = ?)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
         id,
         payload.order_id,
         payload.product_id || null,
         payload.variant_id || null,
+        // R2（F2）：手工行单价快照优先；绑定变体的行以变体当前售价为快照（B9）
+        payload.unit_price ?? null,
         payload.variant_id || null,
         payload.snapshot_name,
         payload.snapshot_sku || null,

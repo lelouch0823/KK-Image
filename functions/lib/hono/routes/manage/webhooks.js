@@ -104,13 +104,24 @@ function buildTestPayload(webhook, user) {
   };
 }
 
+/**
+ * C-R9（C-F13）：webhook secret 仅写入不回显——webhooks:read 是只读权限，
+ * 回传原文会让持有该权限的主体可伪造合法签名。响应统一脱敏为存在性标志
+ */
+function maskWebhookSecret(webhook) {
+  if (!webhook || typeof webhook !== 'object') return webhook;
+  const { secret, ...rest } = webhook;
+  return { ...rest, hasSecret: Boolean(secret) };
+}
+
 app.get('/', requirePermission('webhooks:read'), async (c) => {
   const repo = new WebhookRepository(c.env.DB);
   const list = await repo.listAll();
 
   return c.json({
     success: true,
-    data: list,
+    // C-R9：列表脱敏 secret
+    data: (list || []).map(maskWebhookSecret),
     supportedEvents: getSupportedEvents(),
   });
 });
@@ -121,7 +132,7 @@ app.get('/:id', requirePermission('webhooks:read'), async (c) => {
     repo.getById(c.req.param('id')),
     () => new NotFoundError(MSG.WEBHOOK.NOT_FOUND)
   );
-  return c.json({ success: true, data: webhook });
+  return c.json({ success: true, data: maskWebhookSecret(webhook) });
 });
 
 app.post(
@@ -156,7 +167,8 @@ app.post(
       summary: `Created webhook ${created.url}`,
     });
 
-    return c.json({ success: true, data: created }, 201);
+    // C-R9：创建响应脱敏 secret
+    return c.json({ success: true, data: maskWebhookSecret(created) }, 201);
   }
 );
 
@@ -199,7 +211,8 @@ app.put(
       summary: `Updated webhook ${updated.url}`,
     });
 
-    return c.json({ success: true, data: updated });
+    // C-R9：更新响应脱敏 secret
+    return c.json({ success: true, data: maskWebhookSecret(updated) });
   }
 );
 

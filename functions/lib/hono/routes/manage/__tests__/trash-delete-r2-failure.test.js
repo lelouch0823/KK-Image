@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   fileFindTrash: vi.fn(async () => []),
   folderFindTrash: vi.fn(async () => []),
   folderFindById: vi.fn(async () => null),
-  folderGetAllStorageKeysRecursive: vi.fn(async () => []),
+  folderGetAllFilesRecursive: vi.fn(async () => []),
   folderDeleteRecursive: vi.fn(),
   decrementRefCount: vi.fn(async () => false),
   scheduleAuditEvent: vi.fn(),
@@ -25,7 +25,7 @@ vi.mock('../../../../../repositories/FolderRepository.js', () => ({
   FolderRepository: vi.fn(() => ({
     findTrash: mocks.folderFindTrash,
     findById: mocks.folderFindById,
-    getAllStorageKeysRecursive: mocks.folderGetAllStorageKeysRecursive,
+    getAllFilesRecursive: mocks.folderGetAllFilesRecursive,
     deleteRecursive: mocks.folderDeleteRecursive,
   })),
 }));
@@ -111,7 +111,7 @@ describe('trash delete/empty R2 failure semantics (B-M6)', () => {
     vi.clearAllMocks();
     mocks.fileFindTrash.mockResolvedValue([]);
     mocks.folderFindById.mockResolvedValue(null);
-    mocks.folderGetAllStorageKeysRecursive.mockResolvedValue([]);
+    mocks.folderGetAllFilesRecursive.mockResolvedValue([]);
     mocks.fileDeleteBatch.mockResolvedValue(undefined);
     mocks.folderDeleteRecursive.mockResolvedValue(undefined);
     mocks.decrementRefCount.mockResolvedValue(false);
@@ -119,9 +119,12 @@ describe('trash delete/empty R2 failure semantics (B-M6)', () => {
   });
 
   describe('POST /delete', () => {
-    it('aborts before deleteRecursive when a folder R2 object fails to delete', async () => {
+    it('claims rows first, then surfaces R2 failure for folder fallback keys (C-F1, resumable retry)', async () => {
       mocks.folderFindById.mockResolvedValue({ id: 'folder-a', deleted_at: 100 });
-      mocks.folderGetAllStorageKeysRecursive.mockResolvedValue(['folders/a/1.png', 'folders/a/2.png']);
+      mocks.folderGetAllFilesRecursive.mockResolvedValue([
+        { id: 'file-1', content_hash: null, storage_key: 'folders/a/1.png' },
+        { id: 'file-2', content_hash: null, storage_key: 'folders/a/2.png' },
+      ]);
       const r2 = createR2({ failOn: 'folders/a/2.png' });
       const env = { DB: createEnvDb(), R2_BUCKET: r2 };
 
@@ -136,10 +139,71 @@ describe('trash delete/empty R2 failure semantics (B-M6)', () => {
         executionCtx
       );
 
+      // C-F1：与文件分支 B13 同序——deleteRecursive 先认领台账行，再逐文件
+      // 清对象；R2 失败向上抛出，对象泄漏方向保守（可对账重试）
       expect(res.status).toBe(500);
-      expect(r2.delete).toHaveBeenCalledTimes(2);
-      expect(mocks.folderDeleteRecursive).not.toHaveBeenCalled();
+      expect(mocks.folderDeleteRecursive).toHaveBeenCalledWith('folder-a');
+      expect(mocks.decrementRefCount).not.toHaveBeenCalled();
       expect(mocks.scheduleAuditEvent).not.toHaveBeenCalled();
+    });
+
+    it('deletes shared-CAS blob files via refcount claims, never bare R2 deletes (C-F1)', async () => {
+      mocks.folderFindById.mockResolvedValue({ id: 'folder-a', deleted_at: 100 });
+      // 同一 content_hash 被子树内两个文件共享，另有一个无 hash 的 fallback key
+      mocks.folderGetAllFilesRecursive.mockResolvedValue([
+        { id: 'file-1', content_hash: 'hash-1', storage_key: 'hash-1' },
+        { id: 'file-2', content_hash: 'hash-1', storage_key: 'hash-1' },
+        { id: 'file-3', content_hash: null, storage_key: 'fallback-1' },
+      ]);
+      const r2 = createR2();
+      const env = { DB: createEnvDb(), R2_BUCKET: r2 };
+
+      const res = await createApp().request(
+        'http://localhost/api/manage/trash/delete',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileIds: [], folderIds: ['folder-a'] }),
+        },
+        env,
+        executionCtx
+      );
+
+      expect(res.status).toBe(200);
+      expect(mocks.folderDeleteRecursive).toHaveBeenCalledWith('folder-a');
+      // 共享 blob 走引用认领（每个文件行扣一次），不裸删共享对象
+      expect(mocks.decrementRefCount).toHaveBeenCalledTimes(2);
+      expect(mocks.decrementRefCount).toHaveBeenNthCalledWith(1, env, 'hash-1');
+      expect(mocks.decrementRefCount).toHaveBeenNthCalledWith(2, env, 'hash-1');
+      // 仅独占的 fallback key 直接删 R2
+      expect(r2.delete).toHaveBeenCalledTimes(1);
+      expect(r2.delete).toHaveBeenCalledWith('fallback-1');
+    });
+
+    it('surfaces refcount claim failure for shared blobs (tombstone keeps retry entry)', async () => {
+      mocks.folderFindById.mockResolvedValue({ id: 'folder-a', deleted_at: 100 });
+      mocks.folderGetAllFilesRecursive.mockResolvedValue([
+        { id: 'file-1', content_hash: 'hash-1', storage_key: 'hash-1' },
+      ]);
+      mocks.decrementRefCount.mockRejectedValue(new Error('R2 internal error'));
+      const r2 = createR2();
+      const env = { DB: createEnvDb(), R2_BUCKET: r2 };
+
+      const res = await createApp().request(
+        'http://localhost/api/manage/trash/delete',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fileIds: [], folderIds: ['folder-a'] }),
+        },
+        env,
+        executionCtx
+      );
+
+      expect(res.status).toBe(500);
+      expect(mocks.folderDeleteRecursive).toHaveBeenCalledWith('folder-a');
+      // 共享对象未被裸删（认领失败跳过对象删除）
+      expect(r2.delete).not.toHaveBeenCalled();
     });
 
     it('claims the DB row first, then surfaces R2 failure (resumable retry, B13)', async () => {
@@ -217,11 +281,13 @@ describe('trash delete/empty R2 failure semantics (B-M6)', () => {
 
     it('keeps deleting DB records when R2 objects are missing (idempotent delete)', async () => {
       mocks.folderFindById.mockResolvedValue({ id: 'folder-a', deleted_at: 100 });
+      mocks.folderGetAllFilesRecursive.mockResolvedValue([
+        { id: 'file-1', content_hash: null, storage_key: 'files/gone.png' },
+      ]);
       const r2 = createR2();
       const env = {
         DB: createEnvDb({
           fileRows: [{ id: 'file-1', storage_key: 'files/gone.png', content_hash: null, deleted_at: 1 }],
-          folderFileIds: ['file-1'],
         }),
         R2_BUCKET: r2,
       };
@@ -263,10 +329,12 @@ describe('trash delete/empty R2 failure semantics (B-M6)', () => {
       expect(mocks.scheduleAuditEvent).not.toHaveBeenCalled();
     });
 
-    it('aborts before deleteRecursive when a trashed folder R2 object fails to delete', async () => {
+    it('claims rows first, then surfaces R2 failure for a trashed folder fallback key (C-F1)', async () => {
       mocks.folderFindTrash.mockResolvedValue([{ id: 'folder-a' }]);
       mocks.folderFindById.mockResolvedValue({ id: 'folder-a', deleted_at: 100 });
-      mocks.folderGetAllStorageKeysRecursive.mockResolvedValue(['folders/a/1.png']);
+      mocks.folderGetAllFilesRecursive.mockResolvedValue([
+        { id: 'file-1', content_hash: null, storage_key: 'folders/a/1.png' },
+      ]);
       const r2 = createR2({ failOn: 'folders/a/1.png' });
       const env = { DB: createEnvDb(), R2_BUCKET: r2 };
 
@@ -278,7 +346,8 @@ describe('trash delete/empty R2 failure semantics (B-M6)', () => {
       );
 
       expect(res.status).toBe(500);
-      expect(mocks.folderDeleteRecursive).not.toHaveBeenCalled();
+      expect(mocks.folderDeleteRecursive).toHaveBeenCalledWith('folder-a');
+      expect(mocks.scheduleAuditEvent).not.toHaveBeenCalled();
     });
   });
 });
@@ -290,7 +359,7 @@ describe('trash cache invalidation', () => {
     vi.clearAllMocks();
     mocks.fileFindTrash.mockResolvedValue([]);
     mocks.folderFindById.mockResolvedValue(null);
-    mocks.folderGetAllStorageKeysRecursive.mockResolvedValue([]);
+    mocks.folderGetAllFilesRecursive.mockResolvedValue([]);
     executionCtx = { waitUntil: vi.fn() };
   });
 

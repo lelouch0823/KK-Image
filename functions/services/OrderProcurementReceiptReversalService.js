@@ -210,6 +210,16 @@ export class OrderProcurementReceiptReversalService {
     if (reservation.insertStatement) {
       statements.push(reservation.insertStatement);
     }
+    // R5（发现 5）：batch 内 PO 状态守卫（与收货路径 C-L1 对齐）——batch 外
+    // requirePurchaseOrder 校验通过后、batch 提交前，并发请求可能把 PO 推进
+    // 到 completed（已完成成本分摊）。无守卫时冲销仍会提交，回退已结算单的
+    // received_qty 而分摊口径不变。条件 touch 0 行 → 断言失败 → 整批回滚
+    statements.push(
+      this.db
+        .prepare('UPDATE purchase_orders SET updated_at = ? WHERE id = ? AND status = ?')
+        .bind(timestamp, poId, purchaseOrder.status)
+    );
+    statements.push(buildPreviousWriteAssertionStatement(this.db));
     statements.push(
       buildPurchaseOrderItemReceivedQtyStatement(this.db, poId, poItem, {
         nextReceivedQty,

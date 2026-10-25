@@ -111,9 +111,6 @@ describe('Order Utils Full Coverage Final', () => {
       const updateCompositeSpy = vi
         .spyOn(OrderRepository.prototype, 'updateComposite')
         .mockResolvedValue({ success: true });
-      const updateDataSpy = vi
-        .spyOn(OrderRepository.prototype, 'updateData')
-        .mockResolvedValue({ success: true });
       const updateStatusSpy = vi
         .spyOn(OrderRepository.prototype, 'updateStatus')
         .mockResolvedValue({ success: true });
@@ -142,11 +139,9 @@ describe('Order Utils Full Coverage Final', () => {
             variantId: 'variant_1',
           })
         );
-        expect(updateDataSpy).not.toHaveBeenCalled();
         expect(updateStatusSpy).not.toHaveBeenCalled();
       } finally {
         updateCompositeSpy.mockRestore();
-        updateDataSpy.mockRestore();
         updateStatusSpy.mockRestore();
       }
     });
@@ -155,9 +150,6 @@ describe('Order Utils Full Coverage Final', () => {
       expect(typeof OrderRepository.prototype.updateComposite).toBe('function');
       const updateCompositeSpy = vi
         .spyOn(OrderRepository.prototype, 'updateComposite')
-        .mockResolvedValue({ success: true });
-      const updateDataSpy = vi
-        .spyOn(OrderRepository.prototype, 'updateData')
         .mockResolvedValue({ success: true });
       const updateStatusSpy = vi
         .spyOn(OrderRepository.prototype, 'updateStatus')
@@ -177,11 +169,9 @@ describe('Order Utils Full Coverage Final', () => {
         const result = await processOrderUpdate(options);
         expect(result.hasChanges).toBe(true);
         expect(updateCompositeSpy).toHaveBeenCalledTimes(1);
-        expect(updateDataSpy).not.toHaveBeenCalled();
         expect(updateStatusSpy).not.toHaveBeenCalled();
       } finally {
         updateCompositeSpy.mockRestore();
-        updateDataSpy.mockRestore();
         updateStatusSpy.mockRestore();
       }
     });

@@ -11,6 +11,31 @@
 import { generateId, now } from '../api/utils/id.js';
 import { ORDER_LINE_NET_AMOUNT_SQL } from '../api/utils/order-amount-sql.js';
 import { MS_PER_DAY } from '../api/utils/constants.js';
+import { ConflictError } from '../lib/hono/errors.js';
+
+/**
+ * (order_id, reference_no) 部分唯一索引（0101）冲突 → 409，
+ * 不再把 SQLite 约束错误当 500 暴露（审查 R1 / F11）。
+ */
+function isPaymentReferenceConflictError(error) {
+  const message = String(error?.message || error).toLowerCase();
+  return (
+    message.includes('unique constraint failed') && message.includes('reference_no')
+  );
+}
+
+function runGuardedPaymentInsert(run) {
+  return async (...args) => {
+    try {
+      return await run(...args);
+    } catch (error) {
+      if (isPaymentReferenceConflictError(error)) {
+        throw new ConflictError('参考号已存在于该订单的其他收款/退款记录，请更换参考号');
+      }
+      throw error;
+    }
+  };
+}
 
 export class PaymentRepository {
   /**
@@ -109,10 +134,11 @@ export class PaymentRepository {
   }) {
     const id = generateId();
     const timestamp = now();
-
-    const result = await this.db
-      .prepare(
-        `INSERT INTO payments (id, order_id, amount, type, method, reference_no, notes, received_at, created_by)
+    // R1：(order_id, reference_no) 唯一冲突映射 409，不再裸 500
+    const run = runGuardedPaymentInsert(async () =>
+      this.db
+        .prepare(
+          `INSERT INTO payments (id, order_id, amount, type, method, reference_no, notes, received_at, created_by)
          SELECT ?, ?, ?, 'payment', ?, ?, ?, ?, ?
          WHERE EXISTS (
            SELECT 1
@@ -132,9 +158,12 @@ export class PaymentRepository {
            GROUP BY order_amounts.order_id, order_amounts.total_amount
            HAVING ROUND(COALESCE(SUM(p.amount), 0) + ?, 2) <= ROUND(order_amounts.total_amount, 2)
          )`
-      )
-      .bind(id, orderId, amount, method, referenceNo, notes, timestamp, createdBy, orderId, amount)
-      .run();
+        )
+        .bind(id, orderId, amount, method, referenceNo, notes, timestamp, createdBy, orderId, amount)
+        .run()
+    );
+
+    const result = await run();
 
     if ((result?.meta?.changes || 0) !== 1) {
       return null;
@@ -156,17 +185,49 @@ export class PaymentRepository {
   /**
    * 删除付款记录（冲正手段）。按 (id, order_id) 条件删除，
    * 避免先查后删的竞态窗口（审查 C-L5）。
+   *
+   * 审查 R1（F1）：删除语句自带净额守卫——删除后订单剩余净额必须 >= 0，
+   * 防止"收款 1000 + 退款 400 后删收款"把净已付打成 -400：
+   * 应收虚增、且 createRefundIfWithinPaid 的净额下限永远无法再修复。
+   * 两个标量子查询均基于绑定常量（非相关子查询），SQLite 会物化求值；
+   * 删除负额退款行时 SUM(其余) + |x| 恒 >= 0 天然放行。
+   *
+   * changes=0 时区分两种情形：行不存在返回 false（路由 404）；
+   * 行存在但净额守卫未命中抛 409 ConflictError（资金状态冲突，非并发）。
    * @param {string} id - 付款记录 ID
    * @param {string} orderId - 归属订单 ID（防跨订单误删）
-   * @returns {Promise<boolean>}
+   * @returns {Promise<boolean>} 行不存在返回 false，删除成功返回 true
    */
   async delete(id, orderId = null) {
     const statement = orderId
-      ? this.db.prepare('DELETE FROM payments WHERE id = ? AND order_id = ?').bind(id, orderId)
+      ? this.db
+          .prepare(
+            `DELETE FROM payments WHERE id = ? AND order_id = ?
+             AND (
+               SELECT COALESCE(SUM(p2.amount), 0) FROM payments p2
+               WHERE p2.order_id = ? AND p2.id != ?
+             ) >= 0`
+          )
+          .bind(id, orderId, orderId, id)
       : this.db.prepare('DELETE FROM payments WHERE id = ?').bind(id);
     const result = await statement.run();
 
-    return result.meta?.changes > 0;
+    if (result.meta?.changes > 0) {
+      return true;
+    }
+    if (!orderId) {
+      return false;
+    }
+
+    // changes=0：行不存在 → false（404）；行存在但守卫拒绝 → 409
+    const existing = await this.db
+      .prepare('SELECT id FROM payments WHERE id = ? AND order_id = ?')
+      .bind(id, orderId)
+      .first();
+    if (!existing) {
+      return false;
+    }
+    throw new ConflictError('删除该收款将使订单净已付为负，无法执行；请先删除关联退款记录');
   }
 
   /**
@@ -186,10 +247,11 @@ export class PaymentRepository {
     const id = generateId();
     const timestamp = now();
     const refundAmount = -Math.abs(Number(amount) || 0);
-
-    const result = await this.db
-      .prepare(
-        `INSERT INTO payments (id, order_id, amount, type, method, reference_no, notes, received_at, created_by)
+    // R1：(order_id, reference_no) 唯一冲突映射 409，不再裸 500
+    const result = await runGuardedPaymentInsert(async () =>
+      this.db
+        .prepare(
+          `INSERT INTO payments (id, order_id, amount, type, method, reference_no, notes, received_at, created_by)
          SELECT ?, ?, ?, 'refund', ?, ?, ?, ?, ?
          WHERE EXISTS (
            SELECT 1 FROM orders o WHERE o.id = ?
@@ -202,21 +264,22 @@ export class PaymentRepository {
            ) net
            WHERE ROUND(net.net_paid + ?, 2) >= 0
          )`
-      )
-      .bind(
-        id,
-        orderId,
-        refundAmount,
-        method,
-        referenceNo,
-        notes,
-        timestamp,
-        createdBy,
-        orderId,
-        orderId,
-        refundAmount
-      )
-      .run();
+        )
+        .bind(
+          id,
+          orderId,
+          refundAmount,
+          method,
+          referenceNo,
+          notes,
+          timestamp,
+          createdBy,
+          orderId,
+          orderId,
+          refundAmount
+        )
+        .run()
+    )();
 
     if ((result?.meta?.changes || 0) !== 1) {
       return null;

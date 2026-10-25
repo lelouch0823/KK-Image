@@ -27,6 +27,7 @@ import {
   resolveReservationOwnership,
 } from '../../../../../services/order-procurement-shared.js';
 import {
+  buildOrderDemandSyncTransitionsByLines,
   syncOrderDemandTransitions,
   syncOrderDemandTransitionsByLines,
 } from '../../../../../api/utils/order-demand-sync.js';
@@ -34,6 +35,51 @@ import { maybeReleaseLineReservations } from '../../../../../services/order-term
 
 const app = new Hono();
 const ORDER_CREATE_COMMAND_TYPE = 'order_create';
+
+/**
+ * R4（F4）：幂等 resume 补放缺失的需求预留同步。
+ *
+ * createManagedOrder 的 demand sync 逐 transition 执行，失败时 partialResult
+ * 携带 demandSyncedVariants（已完成部分）。resume 分支按订单当前行重建
+ * transitions（previousStatus: null 创建语义），跳过已完成的 variant 补执行
+ * 其余；全部完成或行无变体时不产生任何语句。历史 failed 记录无该字段时
+ * 跳过并告警（无法安全重放，只能人工核对预留）。
+ */
+async function replayMissingDemandSyncForResume(db, resume) {
+  if (!resume?.id) return;
+  if (resume.demandSyncedVariants === undefined) {
+    console.warn(
+      `[order-create resume] order ${resume.id} has no demandSyncedVariants in partial result; ` +
+        'demand sync progress unknown (legacy failed record) — verify inventory reservations manually'
+    );
+    return;
+  }
+  const synced = new Set(resume.demandSyncedVariants || []);
+  const orderRepo = new OrderRepository(db);
+  const order = typeof orderRepo.findById === 'function' ? await orderRepo.findById(resume.id) : null;
+  const lines = Array.isArray(order?.lines) ? order.lines : [];
+  if (lines.length === 0) return;
+  const nextStatus = resume.orderStatus || order?.status || 'pending';
+
+  const transitions = buildOrderDemandSyncTransitionsByLines({
+    orderId: resume.id,
+    previousStatus: null,
+    nextStatus,
+    previousLines: [],
+    nextLines: lines,
+    previousFallback: {},
+    nextFallback: {
+      productId: lines.length === 1 ? lines[0]?.productId ?? null : null,
+      variantId: lines.length === 1 ? lines[0]?.variantId ?? null : null,
+      quantity: Number(order?.quantity) || lines.reduce((sum, l) => sum + (Number(l?.quantity ?? l?.ordered_qty) || 0), 0),
+    },
+  });
+  const demandService = new DemandService(db);
+  for (const transition of transitions) {
+    if (transition.variantId && synced.has(transition.variantId)) continue;
+    await demandService.syncOrderTransition(transition);
+  }
+}
 export const auditRouteDeclarations = declareAuditRoutes([
   {
     method: 'POST',
@@ -83,7 +129,14 @@ const buildOrderCreateRequestFingerprint = (body = {}) => buildRequestFingerprin
 const getCreateCommandScopeKey = (c) => getCommandScopeKey(c, ORDER_CREATE_COMMAND_TYPE);
 
 function sanitizeOrderCreateResponse(response = {}) {
-  const { fileIds: _fileIds, ...publicResponse } = response || {};
+  // R4：demandSyncedVariants/orderStatus 是幂等 resume 的内部进度字段，
+  // 不进入客户端响应
+  const {
+    fileIds: _fileIds,
+    demandSyncedVariants: _demandSyncedVariants,
+    orderStatus: _orderStatus,
+    ...publicResponse
+  } = response || {};
   return publicResponse;
 }
 
@@ -147,6 +200,11 @@ app.post('/', zValidator('json', CreateAdminOrderSchema), async (c) => {
   }
 
   if (resume) {
+    // R4（F4）：resume 必须补放失败时未完成的需求预留同步——订单行已建但
+    // inventory_balances.reserved 的 hold 可能缺失（demand sync 在 create 之后
+    // 失败）。partialResult.demandSyncedVariants 记录了已完成部分，按订单
+    // 当前行重建 transitions 后跳过已完成的 variant 逐个补执行
+    await replayMissingDemandSyncForResume(c.env.DB, resume);
     await completeManagedOrderCreateSideEffects(c, resume, {
       user: c.get('user'),
       commandId: reservation.record?.command_id,

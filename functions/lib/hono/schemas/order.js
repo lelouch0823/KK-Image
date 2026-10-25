@@ -17,6 +17,17 @@ const OrderLineSchema = z
     quantity: z.number().int().positive().max(99999).optional(),
     productId: z.string().nullable().optional(),
     variantId: z.string().nullable().optional(),
+    // R2（F2）：手工行（未绑定变体）的单价快照，两位小数；绑定变体的行
+    // 必须省略（价格以变体售价为准，业务层强制）
+    unitPrice: z.coerce
+      .number()
+      .min(0)
+      .max(99999999)
+      .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6, {
+        message: '单价最多两位小数',
+      })
+      .nullable()
+      .optional(),
   })
   .strict();
 
@@ -64,6 +75,16 @@ export const UpdateAdminOrderSchema = z
     fileIds: z.array(z.string()).max(50).optional(),
     productId: z.string().nullable().optional(),
     variantId: z.string().nullable().optional(),
+    // R2（F2）：单行手工订单的单价快照（仅未绑定变体的行可改，业务层强制）
+    unitPrice: z.coerce
+      .number()
+      .min(0)
+      .max(99999999)
+      .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6, {
+        message: '单价最多两位小数',
+      })
+      .nullable()
+      .optional(),
     force: z.boolean().optional(),
     // F12：乐观并发控制——调用方回传读取时的 updated_at，不匹配则 409，
     // 防止两个管理员同时编辑同一订单互相静默覆盖（last-write-wins）

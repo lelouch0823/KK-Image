@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { PaymentRepository } from '../PaymentRepository.js';
+import { ConflictError } from '../../lib/hono/errors.js';
 
 function createStatement(result = {}) {
   const statement = {
@@ -125,5 +126,107 @@ describe('PaymentRepository receivable amounts', () => {
     expect(sql).toContain('o.archived_at IS NULL');
     expect(sql).not.toContain('SUM(o.quantity)');
     expect(sql).not.toContain('total_quantity');
+  });
+});
+
+describe('PaymentRepository delete net guard (审查 R1 / F1)', () => {
+  it('deletes with a post-delete net amount guard in the statement', async () => {
+    const run = vi.fn(async () => ({ meta: { changes: 1 } }));
+    const statements = [];
+    const db = {
+      prepare: vi.fn((sql) => {
+        const statement = { bind: vi.fn(() => ({ run })), first: vi.fn() };
+        statements.push({ sql, statement });
+        return statement;
+      }),
+    };
+    const repo = new PaymentRepository(db);
+
+    await expect(repo.delete('pay-1', 'order-1')).resolves.toBe(true);
+
+    const { sql, statement } = statements[0];
+    expect(sql).toContain('DELETE FROM payments WHERE id = ? AND order_id = ?');
+    // R1：删除后剩余净额 >= 0 的条件子查询
+    expect(sql).toContain('p2.order_id = ?');
+    expect(sql).toContain('p2.id != ?');
+    expect(sql).toContain('>= 0');
+    expect(statement.bind).toHaveBeenCalledWith('pay-1', 'order-1', 'order-1', 'pay-1');
+  });
+
+  it('throws 409 when the row exists but deleting it would make the net amount negative', async () => {
+    const run = vi.fn(async () => ({ meta: { changes: 0 } }));
+    const db = {
+      prepare: vi.fn((sql) => {
+        if (sql.startsWith('SELECT id FROM payments')) {
+          return { bind: vi.fn(() => ({ first: vi.fn(async () => ({ id: 'pay-1' })) })) };
+        }
+        return { bind: vi.fn(() => ({ run })) };
+      }),
+    };
+    const repo = new PaymentRepository(db);
+
+    await expect(repo.delete('pay-1', 'order-1')).rejects.toThrow(ConflictError);
+    await expect(repo.delete('pay-1', 'order-1')).rejects.toThrow(/净已付为负/);
+  });
+
+  it('returns false when the row does not exist (route maps to 404)', async () => {
+    const run = vi.fn(async () => ({ meta: { changes: 0 } }));
+    const db = {
+      prepare: vi.fn((sql) => {
+        if (sql.startsWith('SELECT id FROM payments')) {
+          return { bind: vi.fn(() => ({ first: vi.fn(async () => null) })) };
+        }
+        return { bind: vi.fn(() => ({ run })) };
+      }),
+    };
+    const repo = new PaymentRepository(db);
+
+    await expect(repo.delete('pay-missing', 'order-1')).resolves.toBe(false);
+  });
+});
+
+describe('PaymentRepository reference_no unique conflict mapping (审查 R1 / F11)', () => {
+  function buildUniqueViolationDb(violationMessage) {
+    const uniqueError = new Error(
+      violationMessage || 'UNIQUE constraint failed: payments.order_id, payments.reference_no'
+    );
+    return {
+      prepare: vi.fn(() => ({
+        bind: vi.fn(() => ({
+          run: vi.fn(async () => {
+            throw uniqueError;
+          }),
+        })),
+      })),
+    };
+  }
+
+  it('maps payment insert unique violation to 409 ConflictError', async () => {
+    const repo = new PaymentRepository(buildUniqueViolationDb());
+
+    await expect(
+      repo.createIfWithinRemaining({ orderId: 'order-1', amount: 10, referenceNo: 'R-1' })
+    ).rejects.toThrow(ConflictError);
+    await expect(
+      repo.createIfWithinRemaining({ orderId: 'order-1', amount: 10, referenceNo: 'R-1' })
+    ).rejects.toThrow(/参考号已存在/);
+  });
+
+  it('maps refund insert unique violation to 409 ConflictError', async () => {
+    const repo = new PaymentRepository(buildUniqueViolationDb());
+
+    await expect(
+      repo.createRefundIfWithinPaid({ orderId: 'order-1', amount: 10, referenceNo: 'R-1' })
+    ).rejects.toThrow(ConflictError);
+  });
+
+  it('rethrows non-reference unique violations unchanged', async () => {
+    const repo = new PaymentRepository(
+      buildUniqueViolationDb('UNIQUE constraint failed: payments.id')
+    );
+
+    await expect(
+      repo.createIfWithinRemaining({ orderId: 'order-1', amount: 10 })
+    ).rejects.toThrow(/payments\.id/);
   });
 });

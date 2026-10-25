@@ -67,6 +67,7 @@ export const API = {
   MOVE: `${API_PREFIX}/move`,
   MANAGE_UPLOAD: `${API_PREFIX}/upload`,
   CHECK_HASH: `${API_PREFIX}/files/check-hash`, // 原始文件 hash 预检查
+  INSTANT_UPLOAD: `${API_PREFIX}/files/instant-upload`, // R2（审查 F-2）：秒传服务端认领建行
 
   // 回收站
   TRASH: `${API_PREFIX}/trash`,

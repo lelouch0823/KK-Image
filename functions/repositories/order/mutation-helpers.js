@@ -188,10 +188,37 @@ export function normalizeQuantity(quantity) {
   return Math.trunc(parsed);
 }
 
+/**
+ * 手工行单价归一（审查 R2 / F2）：
+ * 未绑定变体的行允许提交单价快照（unit_price），否则应收恒为 0、无法收款；
+ * 绑定变体的行价格以变体售价为准，unitPrice 必须省略（下方断言强制）。
+ * 金额入口与 payments 一致：两位小数、非负。
+ */
+export function normalizeUnitPrice(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return Math.round(parsed * 100) / 100;
+}
+
+/** 绑定变体的行不允许携带 unitPrice（价格以变体售价为准） */
+export function assertLineUnitPriceRule(line) {
+  if (line?.variantId && line?.unitPrice !== undefined && line.unitPrice !== null) {
+    throw new BadRequestError('绑定变体的行价格以变体售价为准，请勿提交 unitPrice');
+  }
+}
+
 export function normalizeCreateLine(line = {}, fallback = {}) {
+  const effectiveVariantId = line.variantId ?? fallback.variantId ?? null;
+  const effectiveUnitPrice = normalizeUnitPrice(line.unitPrice ?? fallback.unitPrice);
+  // R2：绑定变体的行价格以变体售价为准——携带 unitPrice 直接 400
+  if (effectiveVariantId && effectiveUnitPrice !== null) {
+    throw new BadRequestError('绑定变体的行价格以变体售价为准，请勿提交 unitPrice');
+  }
   return {
     productId: line.productId ?? fallback.productId ?? null,
-    variantId: line.variantId ?? fallback.variantId ?? null,
+    variantId: effectiveVariantId,
+    unitPrice: effectiveUnitPrice,
     mainImageId: line.mainImageId ?? fallback.mainImageId ?? null,
     quantity: normalizeQuantity(line.quantity ?? line.orderedQuantity ?? fallback.quantity ?? 1),
     data: {
@@ -242,6 +269,8 @@ export function serializeNormalizedLines(lines = []) {
     quantity: line.quantity,
     productId: line.productId,
     variantId: line.variantId,
+    // R2：手工行单价快照随行序列化，编辑弹窗可回显
+    unitPrice: line.unitPrice ?? null,
   }));
 }
 
@@ -401,12 +430,24 @@ export async function assertOrderStatusCompatibleWithLines(
 
 export async function syncCompatibilityOrderLineSnapshot(
   db,
-  { orderId, data, productId, variantId, quantity, mainImageId, timestamp, prefetchedStates = null }
+  {
+    orderId,
+    data,
+    productId,
+    variantId,
+    quantity,
+    unitPrice = undefined,
+    mainImageId,
+    timestamp,
+    prefetchedStates = null
+  }
 ) {
   const targetLine = await getOrderLineState(db, orderId, prefetchedStates);
 
   if (!targetLine?.id || Number(targetLine.line_count ?? 1) !== 1) {
-    return db.prepare('SELECT 1').bind();
+    // 非单行订单：行级快照由显式 lines 重写路径维护，此处无操作
+    //（返回语句数组保持调用方展开语义一致）
+    return [db.prepare('SELECT 1').bind()];
   }
 
   const snapshotSpecs = buildSnapshotSpecs(data);
@@ -418,6 +459,10 @@ export async function syncCompatibilityOrderLineSnapshot(
     snapshotSpecsJson,
     timestamp,
   ];
+  // R3（F3）：数量更新的履约下限守卫——ordered_qty 不得低于已发货/已预留/
+  // 已收货进度。谓词不满足时 UPDATE 0 行，紧随的 changes 断言使整个 batch
+  // 回滚并映射为 409（与 C-H3 显式行重写守卫同一闭环，覆盖纯 quantity 路径）
+  let quantityFloorValue = null;
 
   if (productId !== undefined) {
     fields.push('product_id = ?');
@@ -427,24 +472,54 @@ export async function syncCompatibilityOrderLineSnapshot(
     fields.push('variant_id = ?');
     values.push(variantId || null);
   }
+  if (unitPrice !== undefined) {
+    // R2（F2）：仅手工行（未绑定变体）可改 unit_price——绑定变体的行价格
+    // 以变体售价为准，改价不追溯（B9），携带 unitPrice 直接 400
+    if (targetLine.variant_id) {
+      throw new BadRequestError('绑定变体的行价格以变体售价为准，请勿提交 unitPrice');
+    }
+    fields.push('unit_price = ?');
+    values.push(unitPrice === null ? null : normalizeUnitPrice(unitPrice));
+  }
   if (mainImageId !== undefined) {
     fields.push('snapshot_image = ?');
     values.push(mainImageId || null);
   }
   if (quantity !== undefined) {
+    quantityFloorValue = normalizeQuantity(quantity);
     fields.push('ordered_qty = ?');
-    values.push(normalizeQuantity(quantity));
+    values.push(quantityFloorValue);
   }
 
   values.push(targetLine.id, orderId);
 
-  return db
-    .prepare(
-      `UPDATE order_lines
-         SET ${fields.join(', ')}
-         WHERE id = ? AND order_id = ?`
-    )
-    .bind(...values);
+  const whereClauses = ['id = ?', 'order_id = ?'];
+  if (quantity !== undefined) {
+    // 数量下限：新数量 ≥ MAX(shipped, reserved, received)，否则 0 行 + 断言回滚
+    whereClauses.push(
+      '? >= MAX(COALESCE(shipped_qty, 0), COALESCE(reserved_qty, 0), COALESCE(received_qty, 0))'
+    );
+    values.push(quantityFloorValue);
+  }
+
+  const statements = [
+    db
+      .prepare(
+        `UPDATE order_lines
+           SET ${fields.join(', ')}
+           WHERE ${whereClauses.join(' AND ')}`
+      )
+      .bind(...values),
+  ];
+  if (quantity !== undefined) {
+    // 0 行命中（下限守卫拒绝或行被并发删除）→ malformed json → 409
+    statements.push(
+      db.prepare(
+        "SELECT json_extract(CASE WHEN changes() = 1 THEN '{}' ELSE 'not-json' END, '$') AS guard_ok"
+      )
+    );
+  }
+  return statements;
 }
 
 export function deriveCompatibilityLineState(status, orderedQty, existingLine = {}) {
@@ -597,7 +672,7 @@ export function buildOrderLineInsertStatement(db, { orderId, line, status, mainI
             created_at,
             updated_at
         )
-        VALUES (?, ?, ?, ?, (SELECT price FROM product_variants WHERE id = ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, COALESCE(?, (SELECT price FROM product_variants WHERE id = ?)), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `
     )
     .bind(
@@ -605,8 +680,10 @@ export function buildOrderLineInsertStatement(db, { orderId, line, status, mainI
       orderId,
       line.productId,
       line.variantId || null,
-      // 单价快照（迁移 0106）：下单时点的变体售价，后续改价不追溯影响
-      // 该订单的应收/收款上限与收入统计（审查 B9）
+      // 单价快照（迁移 0106）：优先取手工行提交的 unitPrice（R2，未绑定变体
+      // 的行否则应收恒为 0）；绑定变体的行以变体当前售价为快照，后续改价
+      // 不追溯影响该订单的应收/收款上限与收入统计（审查 B9）
+      normalizeUnitPrice(line.unitPrice) ?? null,
       line.variantId || null,
       line.data.name || '',
       line.data.sku || null,

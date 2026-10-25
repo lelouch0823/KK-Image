@@ -30,6 +30,44 @@ describe('notification normalizers', () => {
     );
   });
 
+  it('renders backend i18n descriptors into readable Chinese text (C-R4)', () => {
+    const notification = normalizeSalesNotification({
+      id: 'n-i18n',
+      type: 'order',
+      title: '{"key":"notification.orderAssigned","params":{"orderNo":""}}',
+      content: 'notification.reminder.deadline_desc',
+      is_read: 0,
+      created_at: 1,
+    });
+
+    expect(notification.title).toBe('您有新的指派订单');
+    expect(notification.content).toBe('订单 {orderNo} 期望交货日期为 {deadline}，请关注进度。');
+  });
+
+  it('passes through non-descriptor text unchanged', () => {
+    const notification = normalizeSalesNotification({
+      id: 'n-plain',
+      title: '订单有更新',
+      content: '',
+      is_read: 1,
+      created_at: 1,
+    });
+
+    expect(notification.title).toBe('订单有更新');
+    expect(notification.content).toBe('');
+  });
+
+  it('interpolates params from the descriptor', () => {
+    const notification = normalizeSalesNotification({
+      id: 'n-params',
+      title: JSON.stringify({ key: 'notification.order.updatedDesc', params: { actor: '管理员', orderNo: 'SO-9' } }),
+      is_read: 1,
+      created_at: 1,
+    });
+
+    expect(notification.title).toBe('管理员 修改了订单 SO-9');
+  });
+
   it('normalizes list payloads and preserves unread counts', () => {
     const payload = normalizeSalesNotificationsPayload({
       list: [

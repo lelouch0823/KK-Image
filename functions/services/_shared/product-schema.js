@@ -47,6 +47,19 @@ export function validateProductPayload(
         throw new BadRequestError(`Variant #${index + 1} is invalid`);
       }
 
+      // R2（审查发现 2）：已有变体（带 id）不允许通过目录编辑/导入直改库存——
+      // 库存的唯一变更入口是盘点/收货/履约等带台账的业务事件，直接改写会
+      // 与 inventory_ledger 背离且在并发出入库下丢失变动
+      if (
+        allowExistingVariantStockOmission &&
+        String(variant.id || '').trim() &&
+        variant.stock_quantity !== undefined
+      ) {
+        throw new BadRequestError(
+          `Variant #${index + 1}: 已有变体库存请通过盘点/库存调整变更，不允许直接改写`
+        );
+      }
+
       for (const field of REQUIRED_VARIANT_FIELDS) {
         if (
           field === 'stock_quantity' &&

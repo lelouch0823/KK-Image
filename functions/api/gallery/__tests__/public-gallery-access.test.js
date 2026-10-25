@@ -234,4 +234,85 @@ describe('public gallery access api', () => {
     expect(accessTokens).toHaveLength(2);
     expect(new Set(accessTokens).size).toBe(1);
   });
+
+  // R1（审查 F-3）：回收站中的文件夹分享必须立即失效——软删除不清 share_token，
+  // 服务端必须按 is_deleted = 0 过滤，使软删目录的 gallery token 直接 404
+  it('returns 404 for a soft-deleted folder and filters is_deleted in the lookup', async () => {
+    const seenSql = [];
+    const db = {
+      prepare: vi.fn((sql) => {
+        seenSql.push(sql);
+        if (sql.includes('SELECT * FROM folders WHERE share_token = ?')) {
+          return {
+            bind: vi.fn(() => ({
+              first: vi.fn(async () => null),
+            })),
+          };
+        }
+        throw new Error(`Unexpected SQL: ${sql}`);
+      }),
+    };
+
+    const response = await onRequestGet({
+      env: { DB: db },
+      params: { token: 'gallery-token' },
+      request: new Request('http://localhost/api/gallery/gallery-token'),
+    });
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toMatchObject({ success: false });
+    expect(seenSql.some((sql) => sql.includes('share_token = ?') && sql.includes('is_deleted = 0'))).toBe(
+      true
+    );
+  });
+
+  it('keeps the subfolder listing filtered to non-deleted folders', async () => {
+    const seenSql = [];
+    const db = {
+      prepare: vi.fn((sql) => {
+        seenSql.push(sql);
+        if (sql.includes('SELECT * FROM folders WHERE share_token = ?')) {
+          return {
+            bind: vi.fn(() => ({
+              first: vi.fn(async () => ({
+                id: 'folder-1',
+                share_token: 'gallery-token',
+                name: 'Gallery',
+                description: '',
+                created_at: 1,
+                is_public: 1,
+                password: '',
+                share_expires_at: null,
+              })),
+            })),
+          };
+        }
+        if (sql.includes('FROM files') && sql.includes('WHERE folder_id = ?')) {
+          return {
+            bind: vi.fn(() => ({
+              all: vi.fn(async () => ({ results: [] })),
+            })),
+          };
+        }
+        if (sql.includes('FROM folders') && sql.includes('parent_id = ?')) {
+          return {
+            bind: vi.fn(() => ({
+              all: vi.fn(async () => ({ results: [] })),
+            })),
+          };
+        }
+        throw new Error(`Unexpected SQL: ${sql}`);
+      }),
+    };
+
+    const response = await onRequestGet({
+      env: { DB: db },
+      params: { token: 'gallery-token' },
+      request: new Request('http://localhost/api/gallery/gallery-token'),
+    });
+
+    expect(response.status).toBe(200);
+    const subfolderSql = seenSql.find((sql) => sql.includes('parent_id = ?'));
+    expect(subfolderSql).toContain('is_deleted = 0');
+  });
 });

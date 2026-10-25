@@ -17,6 +17,8 @@ export const ADMIN_EDITABLE_FIELDS = [
   'remark',
   'deadline',
   'quantity',
+  // R2（F2）：手工行单价快照（仅未绑定变体的行可改，业务层强制）
+  'unitPrice',
   'lines',
 ];
 
@@ -61,6 +63,8 @@ export function normalizeEditableLines(lines = []) {
     quantity: normalizeLineQuantity(line.quantity ?? line.orderedQuantity),
     productId: line.productId ?? null,
     variantId: line.variantId ?? null,
+    // R2（F2）：手工行单价快照随行编辑透传（绑定变体的行由业务层拒绝）
+    unitPrice: line.unitPrice ?? line.unit_price ?? null,
   }));
 }
 

@@ -87,11 +87,14 @@ async function isPublicShareAuthorized(env, request, fileId, fileRecord) {
   }
 
   if (payload.shareType === 'gallery') {
+    // R1（审查 F-3）：签名 URL 复检同样必须排除回收站中的文件夹，
+    // 否则软删冷静期内已签发的 access 令牌仍可继续下载文件
     const row = await env.DB.prepare(
       `SELECT 1
        FROM folders
        WHERE share_token = ?
          AND is_public = 1
+         AND is_deleted = 0
          AND (share_expires_at IS NULL OR share_expires_at >= ?)
          AND id = ?
        LIMIT 1`

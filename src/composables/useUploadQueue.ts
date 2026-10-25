@@ -221,7 +221,44 @@ export function useUploadQueue() {
   }
 
   /**
-   * 完整上传流程：压缩/水印 → 哈希 → 预检 → 上传
+   * R2（审查 F-2）：秒传服务端认领
+   *
+   * 旧行为"check-hash 命中即本地跳过"会让目标目录永远缺文件（预检是全局
+   * 按 original_hash 匹配，与目标目录无关）。命中后必须调用服务端
+   * instant-upload 端点：服务端认领 blob 引用并在目标目录真实建行；
+   * 返回 exists:false（同源文件缺失/并发清理认领失败）时回退完整上传。
+   * 空间上传（spaceId）不走认领——文件落点/排序/关联由 manage/upload 统一处理。
+   * 返回服务端创建的 file 信息；认领失败返回 null。
+   */
+  async function claimInstantUpload(
+    originalHash: string,
+    item: UploadItem
+  ): Promise<Record<string, unknown> | null> {
+    if (item.options?.spaceId) {
+      return null;
+    }
+    try {
+      const res = await requestAuth(API.INSTANT_UPLOAD, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          original_hash: originalHash,
+          folderId: item.folderId || 'root',
+          name: item.name,
+        }),
+      });
+      const data = await res.json();
+      if (data?.success && data.data?.exists && data.data?.file) {
+        return data.data.file as Record<string, unknown>;
+      }
+    } catch (_e) {
+      // 认领失败不阻塞：回退完整上传（服务端 CAS 兜底）
+    }
+    return null;
+  }
+
+  /**
+   * 完整上传流程：压缩/水印 → 哈希 → 预检 → 服务端认领 → 上传
    */
   async function handleUpload(item: UploadItem): Promise<void> {
     let finalFile = item.file;
@@ -259,27 +296,35 @@ export function useUploadQueue() {
         // 如果前面压缩时已经计算过 hash，可以直接复用
         item.hash = finalHash || await computeHash(item.file);
 
-        // ── 阶段 2: 秒传预检 ──
-        let checkHashStr = item.originalHash || item.hash;
-        const existing = await checkHash(checkHashStr);
-        if (existing) {
-          // 秒传成功！
-          item.status = 'success';
-          item.progress = 100;
-          activeUploads--;
+        // ── 阶段 2: 秒传预检 + 服务端认领（R2）──
+        // 空间上传（spaceId）不走预检命中跳过：命中也无法关联空间，
+        // 直接走 MANAGE_UPLOAD 由服务端建行并关联
+        if (!item.options?.spaceId) {
+          let checkHashStr = item.originalHash || item.hash;
+          const existing = await checkHash(checkHashStr);
+          if (existing) {
+            const claimedFile = await claimInstantUpload(checkHashStr, item);
+            if (claimedFile) {
+              // 秒传成功（服务端已在目标目录建行）
+              item.status = 'success';
+              item.progress = 100;
+              activeUploads--;
 
-          addToast({
-            message: `${item.name} ${t('uploadQueue.instantUpload')}`,
-            type: 'success',
-            duration: 2000,
-          });
+              addToast({
+                message: `${item.name} ${t('uploadQueue.instantUpload')}`,
+                type: 'success',
+                duration: 2000,
+              });
 
-          // 触发文件夹刷新
-          const callback = folderRefreshCallbacks.value.get(item.folderId);
-          if (callback) callback();
+              // 触发文件夹刷新
+              const callback = folderRefreshCallbacks.value.get(item.folderId);
+              if (callback) callback();
 
-          processQueue();
-          return;
+              processQueue();
+              return;
+            }
+            // 认领失败：同源内容不可复用（并发清理等），回退完整上传
+          }
         }
       } catch (_e) {
         // 哈希失败不阻塞，继续正常上传

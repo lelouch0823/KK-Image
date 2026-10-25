@@ -92,8 +92,37 @@ describe('manage order logistics route', () => {
 
     const sql = db.prepare.mock.calls[0][0];
     expect(sql).toContain('archived_at IS NULL');
-    expect(res.status).toBe(400);
+    // R9（F9）：0 行命中后按"是否归档"区分——mock first() 返回 null
+    //（非归档），归因于 CAS 失败（并发修改）→ 409
+    expect(res.status).toBe(409);
     expect(mocks.timelineAdd).not.toHaveBeenCalled();
     expect(mocks.scheduleAuditEvent).not.toHaveBeenCalled();
+  });
+
+  it('reports 400 when the order is archived (R9 distinguishes CAS loss from archive)', async () => {
+    mocks.updateRun.mockResolvedValueOnce({ meta: { changes: 0 } });
+    const app = createApp();
+    const db = createDb();
+    // fresh 查询返回已归档 → 400 归档文案
+    db.prepare = vi.fn((sql) => ({
+      sql,
+      bind: vi.fn(() => ({
+        run: mocks.updateRun,
+        first: vi.fn(async () => ({ archived_at: 123 })),
+      })),
+    }));
+
+    const res = await app.request(
+      '/api/manage/orders/order-1/logistics',
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trackingNo: 'T-1', carrier: 'express' }),
+      },
+      { DB: db }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.timelineAdd).not.toHaveBeenCalled();
   });
 });

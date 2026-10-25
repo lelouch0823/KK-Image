@@ -20,6 +20,10 @@ import {
 import { generateId, generateOrderNo, MSG, ORDER_STATUSES } from '../_shared/utils.js';
 import { BadRequestError } from '../lib/hono/errors.js';
 import { OrderRepository } from '../repositories/OrderRepository.js';
+import { normalizeUnitPrice } from '../repositories/order/mutation-helpers.js';
+import {
+  buildOrderDemandSyncTransitionsByLines,
+} from '../api/utils/order-demand-sync.js';
 import { DemandService } from './DemandService.js';
 import { DomainOutboxPublisher } from './DomainOutboxPublisher.js';
 
@@ -48,6 +52,8 @@ const SALES_EDITABLE_FIELDS = Object.freeze([
   'remark',
   'deadline',
   'quantity',
+  // R2（F2）：手工单单价快照（仅未绑定商品的单可改，业务层强制）
+  'unitPrice',
 ]);
 
 function attachPartialResult(error, partialResult) {
@@ -130,21 +136,29 @@ export class OrderCreationService {
    */
   normalizeOrderLines(lines) {
     if (!Array.isArray(lines)) return [];
-    return lines.filter(Boolean).map((line) => ({
-      name: String(line.name || '').trim(),
-      brand: String(line.brand || '').trim(),
-      category: String(line.category || '').trim(),
-      series: String(line.series || '').trim(),
-      sku: String(line.sku || '').trim(),
-      size: String(line.size || '').trim(),
-      color: String(line.color || '').trim(),
-      material: String(line.material || '').trim(),
-      remark: String(line.remark || '').trim(),
-      deadline: String(line.deadline || '').trim(),
-      quantity: Math.max(1, Math.trunc(Number(line.quantity || 1))),
-      productId: line.productId || null,
-      variantId: line.variantId ?? null,
-    }));
+    return lines.filter(Boolean).map((line) => {
+      const unitPrice = normalizeUnitPrice(line.unitPrice);
+      // R2（F2）：绑定变体的行价格以变体售价为准，携带 unitPrice 直接 400
+      if ((line.variantId ?? null) && unitPrice !== null) {
+        throw new BadRequestError('绑定变体的行价格以变体售价为准，请勿提交 unitPrice');
+      }
+      return {
+        name: String(line.name || '').trim(),
+        brand: String(line.brand || '').trim(),
+        category: String(line.category || '').trim(),
+        series: String(line.series || '').trim(),
+        sku: String(line.sku || '').trim(),
+        size: String(line.size || '').trim(),
+        color: String(line.color || '').trim(),
+        material: String(line.material || '').trim(),
+        remark: String(line.remark || '').trim(),
+        deadline: String(line.deadline || '').trim(),
+        quantity: Math.max(1, Math.trunc(Number(line.quantity || 1))),
+        productId: line.productId || null,
+        variantId: line.variantId ?? null,
+        unitPrice,
+      };
+    });
   }
 
   /**
@@ -215,23 +229,56 @@ export class OrderCreationService {
 
   /**
    * 将文件归档到订单目录
+   *
+   * C-R6（C-F4）：只搬移仍在上传暂存区（root/无目录）的文件。管理端建单
+   * 可能通过 check-hash 复用系统里已存在的文件（商品主图、其他订单的
+   * 附件）——旧实现无条件 MOVE 会把原目录的文件"搬走"，此后在文件管理器
+   * 删除该行会让所有引用它的订单/商品同时 404。已有归属目录的文件保留
+   * 原位，订单经 order_files 关联仍可引用；返回 skipped 供调用方日志留痕。
    * @param {Object} env - 环境对象
    * @param {Array<string>} fileIds
    * @param {string} orderNo
-   * @returns {Promise<{success: boolean, count: number, error?: string}>}
+   * @returns {Promise<{success: boolean, count: number, movedCount: number, skippedFileIds?: string[], error?: string}>}
    */
   async archiveFiles(env, fileIds, orderNo) {
     const ids = Array.isArray(fileIds) ? fileIds.filter(Boolean) : [];
-    if (ids.length === 0) return { success: true, count: 0 };
+    if (ids.length === 0) return { success: true, count: 0, movedCount: 0 };
 
     try {
       const { ensureOrderFolder, moveFilesToFolder } = await import('../api/utils/folder-utils.js');
+
+      // 分拣：暂存区（root/NULL）的文件可搬移；已有归属目录的不动
+      const placeholders = ids.map(() => '?').join(',');
+      const { results: fileRows = [] } = await env.DB.prepare(
+        `SELECT id, folder_id FROM files WHERE id IN (${placeholders})`
+      )
+        .bind(...ids)
+        .all();
+      const movableIds = [];
+      const skippedFileIds = [];
+      for (const row of fileRows) {
+        if (!row.folder_id || row.folder_id === 'root') {
+          movableIds.push(row.id);
+        } else {
+          skippedFileIds.push(row.id);
+        }
+      }
+      if (skippedFileIds.length > 0) {
+        console.warn(
+          `[OrderCreation] archiveFiles skipped ${skippedFileIds.length} file(s) with existing folder ownership ` +
+            '(reused via check-hash or already filed); order keeps referencing them in place'
+        );
+      }
+      if (movableIds.length === 0) {
+        return { success: true, count: ids.length, movedCount: 0, skippedFileIds };
+      }
+
       const folderId = await ensureOrderFolder(env, orderNo);
-      await moveFilesToFolder(env, ids, folderId);
-      return { success: true, count: ids.length };
+      await moveFilesToFolder(env, movableIds, folderId);
+      return { success: true, count: ids.length, movedCount: movableIds.length, skippedFileIds };
     } catch (error) {
       console.error('Order file archiving error:', error);
-      return { success: false, count: 0, error: String(error?.message || error) };
+      return { success: false, count: 0, movedCount: 0, error: String(error?.message || error) };
     }
   }
 
@@ -253,6 +300,11 @@ export class OrderCreationService {
   async prepareCreateOrder(salesperson, data) {
     const normalizedLines = this.normalizeOrderLines(data.lines);
     if (normalizedLines.length === 0) {
+      const fallbackUnitPrice = normalizeUnitPrice(data.unitPrice);
+      // R2（F2）：销售端手工单携带单价时，绑定变体的单以变体售价为准
+      if ((data.variantId ?? null) && fallbackUnitPrice !== null) {
+        throw new BadRequestError('绑定变体的行价格以变体售价为准，请勿提交 unitPrice');
+      }
       normalizedLines.push({
         name: String(data.name || '').trim(),
         brand: String(data.brand || '').trim(),
@@ -267,6 +319,7 @@ export class OrderCreationService {
         quantity: Math.max(1, Math.trunc(Number(data.quantity || 1))),
         productId: data.productId || null,
         variantId: data.variantId ?? null,
+        unitPrice: fallbackUnitPrice,
       });
     }
     const primaryLine = normalizedLines[0] || null;
@@ -394,21 +447,29 @@ export class OrderCreationService {
     const orderRepo = new OrderRepository(this.db);
     const orderId = generateId();
     const orderNo = generateOrderNo();
-    const normalizedLines = rawLines.map((line) => ({
-      name: String(line.name || line.productName || '').trim(),
-      brand: String(line.brand || '').trim(),
-      category: String(line.category || '').trim(),
-      series: String(line.series || '').trim(),
-      sku: String(line.sku || '').trim(),
-      size: String(line.size || '').trim(),
-      color: String(line.color || '').trim(),
-      material: String(line.material || '').trim(),
-      remark: String(line.remark || '').trim(),
-      deadline: String(line.deadline || '').trim(),
-      quantity: Math.max(1, Math.trunc(Number(line.quantity || 1))),
-      productId: line.productId || null,
-      variantId: line.variantId ?? null,
-    }));
+    const normalizedLines = rawLines.map((line) => {
+      const unitPrice = normalizeUnitPrice(line.unitPrice);
+      // R2（F2）：绑定变体的行价格以变体售价为准，携带 unitPrice 直接 400
+      if ((line.variantId ?? null) && unitPrice !== null) {
+        throw new BadRequestError('绑定变体的行价格以变体售价为准，请勿提交 unitPrice');
+      }
+      return {
+        name: String(line.name || line.productName || '').trim(),
+        brand: String(line.brand || '').trim(),
+        category: String(line.category || '').trim(),
+        series: String(line.series || '').trim(),
+        sku: String(line.sku || '').trim(),
+        size: String(line.size || '').trim(),
+        color: String(line.color || '').trim(),
+        material: String(line.material || '').trim(),
+        remark: String(line.remark || '').trim(),
+        deadline: String(line.deadline || '').trim(),
+        quantity: Math.max(1, Math.trunc(Number(line.quantity || 1))),
+        productId: line.productId || null,
+        variantId: line.variantId ?? null,
+        unitPrice,
+      };
+    });
     // P-M1：批量校验全部行绑定（2 条 IN 查询替代逐行 2N+2 次往返）
     const batchBindings = await validateProductVariantBindingsBatch(
       this.db,
@@ -538,7 +599,9 @@ export class OrderCreationService {
       fileIds: Array.isArray(body.fileIds) ? body.fileIds.filter(Boolean) : [],
     };
 
-    // 同步需求变更
+    // 同步需求变更（R4/F4：逐 transition 执行并记录已完成的 variant——
+    // 失败时 partialResult 携带进度，幂等 resume 分支据此只补放缺失的
+    // 预留同步，而不是错误地整体跳过）
     try {
       const persistedOrderDetail =
         typeof orderRepo.findById === 'function' ? await orderRepo.findById(persistedOrderId) : null;
@@ -548,7 +611,7 @@ export class OrderCreationService {
       const demandLines = persistedLines.length > 0 ? persistedLines : hydratedLines;
       const demandPrimaryLine = demandLines[0] || primaryLine;
 
-      await syncOrderDemandTransitionsByLines(this.demandService, {
+      const transitions = buildOrderDemandSyncTransitionsByLines({
         orderId: persistedOrderId,
         previousStatus: null,
         nextStatus,
@@ -563,6 +626,13 @@ export class OrderCreationService {
           quantity: totalQuantity,
         },
       });
+      const demandSyncedVariants = [];
+      for (const transition of transitions) {
+        await this.demandService.syncOrderTransition(transition);
+        if (transition.variantId) demandSyncedVariants.push(transition.variantId);
+      }
+      partialResult.demandSyncedVariants = demandSyncedVariants;
+      partialResult.orderStatus = nextStatus;
     } catch (error) {
       console.error('Order demand sync failed (managed create):', error);
       throw attachPartialResult(error, partialResult);

@@ -16,11 +16,24 @@ import {
   FileQuerySchema,
   CreateFileSchema,
   CheckHashSchema,
+  InstantUploadSchema,
   UpdateFileSchema,
 } from '../../schemas/file.js';
+import { getBlobByHash, incrementRefCount } from '../../../../api/utils/blob-utils.js';
+import { generateUniqueName } from '../../../../api/utils/file-utils.js';
 
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
+  {
+    // R2（审查 F-2）：秒传认领会真实建行（与 POST / 同级的变更路由），
+    // 必须声明审计；POST /check-hash 为 non-mutating，由 audit-route-exclusions 统一豁免
+    method: 'POST',
+    path: '/instant-upload',
+    domain: 'files',
+    action: 'file.instant_upload',
+    severity: 'normal',
+    targetType: 'file',
+  },
   {
     method: 'POST',
     path: '/',
@@ -203,6 +216,137 @@ app.post('/check-hash', zValidator('json', CheckHashSchema), async (c) => {
 
   return c.json({ success: true, data: { exists: false } });
 });
+
+/**
+ * POST /api/manage/files/instant-upload - R2（审查 F-2）：秒传服务端认领
+ *
+ * check-hash 仅做"是否存在"预检；旧前端命中后本地跳过上传，导致同源文件
+ * 复用到其他目录时目标目录始终缺文件。现在前端命中后必须调用本端点：
+ * 按 original_hash 定位同源文件 → 认领其 blob 引用（并发清理时认领失败，
+ * 返回 exists:false 让前端回退完整上传）→ 在目标目录创建 files 行
+ * （storage_key = 已存储内容的 content_hash，重命名语义与 storeFile 一致）。
+ * 注意注册顺序：必须先于 GET /:id（Hono 按注册顺序匹配路径参数路由）。
+ */
+app.post(
+  '/instant-upload',
+  requirePermission('files:write'),
+  zValidator('json', InstantUploadSchema),
+  async (c) => {
+    const { original_hash, folderId, name } = c.req.valid('json');
+    const { env } = c;
+    const user = c.get('user');
+    const repo = new FileRepository(env.DB);
+    const targetFolderId = folderId || 'root';
+
+    // 1. 定位同源文件（与 check-hash 同口径：全局按 original_hash，排除已删除行）
+    const sourceFile = await repo.findByOriginalHash(original_hash);
+    if (!sourceFile?.storage_key) {
+      return c.json({ success: true, data: { exists: false } });
+    }
+
+    // 2. 复用其已存储内容：CAS 下 storage_key 即 content_hash，须确认 blobs 台账仍在
+    const blob = await getBlobByHash(env, sourceFile.storage_key);
+    if (!blob) {
+      return c.json({ success: true, data: { exists: false } });
+    }
+
+    // 3. 目标目录已存在同名同内容文件：直接返回既有行（与 storeFile 场景 A 一致），
+    //    不建行、不加引用
+    const sameName = await repo.findByNameInFolder(targetFolderId, name);
+    if (sameName && sameName.content_hash === sourceFile.storage_key) {
+      return c.json({
+        success: true,
+        data: {
+          exists: true,
+          file: {
+            id: sameName.id,
+            name: sameName.name,
+            url: getFileUrl(sameName.storage_key),
+            mimeType: sameName.mime_type,
+            size: sameName.size,
+            instantUpload: true,
+            isDuplicate: true,
+          },
+        },
+      });
+    }
+
+    // 4. 认领 blob 引用（B4 语义）：changes()=1 才拿到引用权；
+    //    认领失败 = 行被并发清理删除，回退完整上传兜底
+    const claimed = await incrementRefCount(env, sourceFile.storage_key);
+    if (!claimed) {
+      return c.json({ success: true, data: { exists: false } });
+    }
+
+    // 5. 在目标目录创建文件行（同名不同内容时自动重命名，与 storeFile 场景 B 一致）
+    const finalName = sameName ? await generateUniqueName(repo, targetFolderId, name) : name;
+    const fileId = generateId();
+    const nowMs = Date.now();
+    await repo.create({
+      id: fileId,
+      folderId: targetFolderId,
+      name: finalName,
+      originalName: name,
+      storageKey: sourceFile.storage_key,
+      size: Number(blob.size) || Number(sourceFile.size) || 0,
+      mimeType: blob.mime_type || sourceFile.mime_type || 'application/octet-stream',
+      contentHash: sourceFile.storage_key,
+      originalHash: original_hash,
+      createdBy: user?.id || null,
+      createdAt: nowMs,
+      updatedAt: nowMs,
+    });
+
+    await publishSingleDomainEventAndPoll(
+      c,
+      {
+        event_type: 'file_uploaded',
+        aggregate_type: 'file',
+        aggregate_id: fileId,
+        payload: {
+          file: {
+            id: fileId,
+            folder_id: targetFolderId,
+            filename: finalName,
+            size: Number(blob.size) || Number(sourceFile.size) || 0,
+            type: blob.mime_type || sourceFile.mime_type || 'application/octet-stream',
+            uploadTime: new Date(nowMs).toISOString(),
+            url: getFileUrl(sourceFile.storage_key),
+            uploader: user?.name || user?.username || user?.id || 'admin',
+          },
+          user,
+        },
+      },
+      `file-instant-upload:${fileId}`
+    );
+    scheduleAuditEvent(c, {
+      domain: 'files',
+      action: 'file.instant_upload',
+      result: 'success',
+      severity: 'normal',
+      targetType: 'file',
+      targetId: fileId,
+      target_label: finalName,
+      summary: `Instant-uploaded ${finalName} into folder ${targetFolderId}`,
+      metadata: { originalHash: original_hash, folderId: targetFolderId, sourceFileId: sourceFile.id },
+    });
+
+    return c.json({
+      success: true,
+      data: {
+        exists: true,
+        file: {
+          id: fileId,
+          name: finalName,
+          url: getFileUrl(sourceFile.storage_key),
+          mimeType: blob.mime_type || sourceFile.mime_type || 'application/octet-stream',
+          size: Number(blob.size) || Number(sourceFile.size) || 0,
+          instantUpload: true,
+        },
+      },
+    });
+  }
+);
 
 /**
  * GET /api/manage/files/:id - 获取单个文件详情

@@ -132,7 +132,9 @@ function assertSha256Hex(value, label) {
  * @param {string} fileName
  * @returns {Promise<string>}
  */
-async function generateUniqueName(repo, folderId, fileName) {
+// R2（审查 F-2）：导出供 manage/files 的 instant-upload 端点复用，
+// 保证秒传建行的重命名语义与 storeFile 场景 B 完全一致
+export async function generateUniqueName(repo, folderId, fileName) {
   let name = fileName;
   const ext = getExtension(name);
   const base = ext ? name.substring(0, name.lastIndexOf('.')) : name;
@@ -293,9 +295,14 @@ export async function storeFile(env, file, options = {}) {
       httpMetadata: { contentType: mimeType },
     });
 
-    // 创建 blob 记录（用于 CAS 引用计数）
+    // 创建 blob 记录（用于 CAS 引用计数）。C-R8（C-F9）：并发上传同一新内容
+    // 时本请求的 createBlob 会输给对手（ON CONFLICT DO NOTHING）——对手行
+    // 的 ref_count=1 只含对手的文件，此处必须 increment 补上本次引用
     if (contentHash) {
-      await createBlob(env, contentHash, fileSize, mimeType);
+      const inserted = await createBlob(env, contentHash, fileSize, mimeType);
+      if (!inserted) {
+        await incrementRefCount(env, contentHash);
+      }
     }
   }
 

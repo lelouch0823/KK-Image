@@ -330,13 +330,19 @@ describe('OrderLineFulfillmentService', () => {
         quantity: 4,
       })
     );
-    expect(harness.allocationRepo.createInsertStatement).toHaveBeenCalledWith(
-      expect.objectContaining({
-        order_line_id: 'line-1',
-        variant_id: 'var-1',
-        allocated_qty: 4,
-      })
+    // R6（F6）：allocation 插入改为 batch 内仲裁的 INSERT..SELECT（不再走
+    // createInsertStatement）——断言仲裁谓词与绑定参数在位
+    expect(harness.allocationRepo.createInsertStatement).not.toHaveBeenCalled();
+    const allocationInsert = harness.calls.batchedStatements.find((statement) =>
+      String(statement.sql).includes('INSERT INTO order_line_allocations')
     );
+    expect(allocationInsert).toBeTruthy();
+    expect(allocationInsert.sql).toContain("a2.status = 'active'");
+    expect(allocationInsert.sql).toContain('ib.on_hand - ib.reserved');
+    // 绑定顺序：id, lineId, variantId, quantity, ts, ts, ts, 谓词参数...
+    expect(allocationInsert.params).toContain('line-1');
+    expect(allocationInsert.params).toContain('var-1');
+    expect(allocationInsert.params).toContain(4);
     const sqlBatch = harness.calls.batchedStatements.map((statement) => statement.sql).join('\n');
     expect(sqlBatch).toContain('UPDATE order_lines');
     expect(sqlBatch).not.toContain('INSERT INTO inventory_balances');

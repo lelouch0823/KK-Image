@@ -432,10 +432,14 @@ describe('manage order detail routes', () => {
   it('allows privileged admin user to delete order', async () => {
     const waitUntil = vi.fn();
     const app = createApp();
+    // R7（F7）：删除守卫会对 payments 做 COUNT 查询（无收款记录才放行）
+    const dbMock = {
+      prepare: vi.fn(() => ({ bind: () => ({ first: async () => ({ count: 0 }) }) })),
+    };
     const res = await app.request(
       'http://localhost/api/manage/orders/order-1',
       { method: 'DELETE' },
-      { DB: { prepare: vi.fn() } },
+      { DB: dbMock },
       { waitUntil }
     );
 
@@ -458,6 +462,25 @@ describe('manage order detail routes', () => {
       expect.anything(),
       expect.objectContaining({ action: 'order.delete', severity: 'critical' })
     );
+  });
+
+  it('refuses to delete an order that still has payment records (R7/F7)', async () => {
+    const waitUntil = vi.fn();
+    const app = createApp();
+    const dbMock = {
+      prepare: vi.fn(() => ({ bind: () => ({ first: async () => ({ count: 2 }) }) })),
+    };
+    const res = await app.request(
+      'http://localhost/api/manage/orders/order-1',
+      { method: 'DELETE' },
+      { DB: dbMock },
+      { waitUntil }
+    );
+
+    // payments ON DELETE CASCADE 会物理抹掉资金流水，有收款的订单必须拒绝硬删除
+    expect(res.status).toBe(409);
+    expect(mocks.deleteOrderCascading).not.toHaveBeenCalled();
+    expect(mocks.publish).not.toHaveBeenCalled();
   });
 
   it('allows role=admin user to force status transition through OPA decision', async () => {
@@ -499,7 +522,7 @@ describe('manage order detail routes', () => {
     const res = await app.request(
       'http://localhost/api/manage/orders/order-1',
       { method: 'DELETE' },
-      { DB: { prepare: vi.fn() } },
+      { DB: { prepare: vi.fn(() => ({ bind: () => ({ first: async () => ({ count: 0 }) }) })) } },
       { waitUntil: vi.fn() }
     );
 

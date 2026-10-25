@@ -67,6 +67,36 @@ async function permanentlyDeleteTrashedFiles(env, fileRepo, files) {
   }
 }
 
+/**
+ * C-F1：文件夹彻底删除改为"文件行粒度"的认领式清理（与文件分支 B13 同语义）。
+ *
+ * 旧实现对子树内所有 storage_key 直接 R2 delete——CAS 架构下 storage_key 即
+ * content_hash，其他目录（可能是另一个客户订单的交付目录）共享同一 R2 对象，
+ * 裸删会连带销毁仍在引用的文件，且 blobs 行未扣减，未来秒传会命中残行建出
+ * 指向已删对象的新文件。现在：先 deleteRecursive 删台账（B13 顺序：先行后
+ * 对象），再对每个文件的 content_hash 走 decrementRefCount 认领（引用归零才
+ * 删 R2，认领失败=并发复活，跳过对象删除）；无 content_hash 的 fallback key
+ * 才直接删（独占对象）。R2 删除失败时 decrementRefCount 会重建墓碑行并抛错，
+ * 保守方向（对象多留、可对账重试）与 B13 一致。
+ */
+async function permanentlyDeleteFolderRecursive(env, folderRepo, folderId) {
+  const files = await folderRepo.getAllFilesRecursive(folderId);
+  // C-F1 补漏：镜像清理按递归子树文件粒度（旧实现只查直接子文件）
+  await purgeStorageMirrors(env, files.map((f) => f.id));
+  await folderRepo.deleteRecursive(folderId);
+  for (const f of files) {
+    if (f.content_hash) {
+      await decrementRefCount(env, f.content_hash);
+    } else if (env.R2_BUCKET && f.storage_key) {
+      try {
+        await env.R2_BUCKET.delete(f.storage_key);
+      } catch (err) {
+        throw new Error(`R2 对象删除失败（${f.storage_key}）：${err?.message || err}`);
+      }
+    }
+  }
+}
+
 const app = new Hono();
 export const auditRouteDeclarations = declareAuditRoutes([
   {
@@ -248,28 +278,8 @@ app.post(
         const folder = await folderRepo.findById(folderId);
         if (!folder || folder.deleted_at === null || folder.deleted_at === undefined) continue;
 
-        const storageKeys = await folderRepo.getAllStorageKeysRecursive(folderId);
-        if (env.R2_BUCKET && storageKeys.length > 0) {
-          // B-M6：与文件分支对齐——R2 删除失败必须中止 DB 删除，
-          // 否则 deleteRecursive 清掉台账后失败对象成永久孤儿
-          await Promise.all(
-            storageKeys.map(async (key) => {
-              try {
-                await env.R2_BUCKET.delete(key);
-              } catch (err) {
-                throw new Error(`R2 对象删除失败（${key}）：${err?.message || err}`);
-              }
-            })
-          );
-        }
-        // B-M6：文件夹内文件的镜像记录一并清理
-        const { results: folderFileRows } = await env.DB.prepare(
-          `SELECT id FROM files WHERE folder_id = ?`
-        )
-          .bind(folderId)
-          .all();
-        await purgeStorageMirrors(env, (folderFileRows || []).map((row) => row.id));
-        await folderRepo.deleteRecursive(folderId);
+        // C-F1：文件行粒度认领式删除（见 permanentlyDeleteFolderRecursive）
+        await permanentlyDeleteFolderRecursive(env, folderRepo, folderId);
       }
     }
     // 彻底删除清空了回收站条目，失效 trash scope 缓存
@@ -313,21 +323,8 @@ app.delete('/empty', requirePermission('files:delete'), async (c) => {
       const exists = await folderRepo.findById(folder.id);
       if (!exists) continue;
 
-      const storageKeys = await folderRepo.getAllStorageKeysRecursive(folder.id);
-      if (env.R2_BUCKET && storageKeys.length > 0) {
-        // B-M6：与文件分支对齐——R2 删除失败必须中止 DB 删除，
-        // 否则 deleteRecursive 清掉台账后失败对象成永久孤儿
-        await Promise.all(
-          storageKeys.map(async (key) => {
-            try {
-              await env.R2_BUCKET.delete(key);
-            } catch (err) {
-              throw new Error(`R2 对象删除失败（${key}）：${err?.message || err}`);
-            }
-          })
-        );
-      }
-      await folderRepo.deleteRecursive(folder.id);
+      // C-F1：文件行粒度认领式删除（见 permanentlyDeleteFolderRecursive）
+      await permanentlyDeleteFolderRecursive(env, folderRepo, folder.id);
     }
   }
   // 清空回收站后失效 trash scope 缓存

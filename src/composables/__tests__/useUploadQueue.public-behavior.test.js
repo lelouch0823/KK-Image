@@ -180,16 +180,28 @@ describe('useUploadQueue public behavior', () => {
 
     queueApi.registerFolderRefresh('folder-1', refresh);
     queueApi.isMinimized.value = true;
-    mocks.requestAuth.mockResolvedValueOnce({
-      json: () =>
-        Promise.resolve({
-          success: true,
-          data: {
-            exists: true,
-            file: { id: 'existing-file' },
-          },
-        }),
-    });
+    // R2（审查 F-2）：预检命中后必须再调用服务端 instant-upload 认领建行
+    mocks.requestAuth
+      .mockResolvedValueOnce({
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: {
+              exists: true,
+              file: { id: 'existing-file' },
+            },
+          }),
+      })
+      .mockResolvedValueOnce({
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: {
+              exists: true,
+              file: { id: 'instant-file-1', name: 'photo.jpg' },
+            },
+          }),
+      });
 
     queueApi.addFiles([image], 'folder-1');
     await flushPromises();
@@ -200,6 +212,16 @@ describe('useUploadQueue public behavior', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ original_hash: 'original-hash' }),
+    });
+    // R2：秒传命中必须发生服务端建行调用（instant-upload），而不是本地跳过
+    expect(mocks.requestAuth).toHaveBeenCalledWith('/api/manage/files/instant-upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        original_hash: 'original-hash',
+        folderId: 'folder-1',
+        name: 'photo.jpg',
+      }),
     });
     expect(queueApi.queue.value[0]).toEqual(
       expect.objectContaining({
@@ -215,6 +237,56 @@ describe('useUploadQueue public behavior', () => {
       type: 'success',
       duration: 2000,
     });
+    // 服务端已建行，不应再有 XHR 上传
+    expect(mocks.xhrInstances).toHaveLength(0);
+  });
+
+  it('falls back to a full upload when the server refuses the instant-upload claim', async () => {
+    const queueApi = useUploadQueue();
+    const refresh = vi.fn();
+    const image = new File(['image'], 'photo.jpg', { type: 'image/jpeg' });
+
+    queueApi.registerFolderRefresh('folder-3', refresh);
+    // 预检命中，但服务端认领失败（同源内容被并发清理/无 blob）→ 必须回退完整上传
+    mocks.requestAuth
+      .mockResolvedValueOnce({
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: {
+              exists: true,
+              file: { id: 'existing-file' },
+            },
+          }),
+      })
+      .mockResolvedValueOnce({
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: { exists: false },
+          }),
+      });
+
+    queueApi.addFiles([image], 'folder-3');
+    await flushPromises();
+
+    expect(mocks.requestAuth).toHaveBeenCalledTimes(2);
+    const fallbackXhr = mocks.xhrInstances[0];
+    expect(fallbackXhr).toBeDefined();
+    expect(fallbackXhr.method).toBe('POST');
+    expect(fallbackXhr.url).toContain('/api/manage/folders/folder-3/upload');
+
+    fallbackXhr.status = 200;
+    fallbackXhr.responseText = JSON.stringify({ success: true });
+    fallbackXhr.onload?.();
+    await flushPromises();
+
+    expect(queueApi.queue.value[0]).toEqual(
+      expect.objectContaining({
+        status: 'success',
+        progress: 100,
+      })
+    );
   });
 
   it('uploads images through xhr with space options and reports parse failures for bad responses', async () => {
@@ -223,15 +295,8 @@ describe('useUploadQueue public behavior', () => {
     const image = new File(['image'], 'poster.png', { type: 'image/png' });
 
     queueApi.registerFolderRefresh('folder-2', refresh);
-    mocks.requestAuth.mockResolvedValueOnce({
-      json: () =>
-        Promise.resolve({
-          success: true,
-          data: {
-            exists: false,
-          },
-        }),
-    });
+    // R2：spaceId 上传跳过 check-hash/instant-upload 预检（空间关联由
+    // manage/upload 服务端处理），不消费 requestAuth mock
 
     queueApi.addFiles([image], 'folder-2', { spaceId: 'space-1' });
     await flushPromises();
@@ -288,15 +353,25 @@ describe('useUploadQueue public behavior', () => {
       })
     );
 
-    mocks.requestAuth.mockResolvedValueOnce({
-      json: () =>
-        Promise.resolve({
-          success: true,
-          data: {
-            exists: true,
-            file: { id: 'existing-file-2' },
-          },
-        }),
+    mocks.requestAuth.mockImplementation(async (url) => {
+      // R2：秒传命中后走两次请求——check-hash 预检 + instant-upload 认领建行。
+      // 按端点分发响应，避免并发上传下 mock 顺序耦合
+      if (String(url).includes('instant-upload')) {
+        return {
+          json: () =>
+            Promise.resolve({
+              success: true,
+              data: { exists: true, file: { id: 'existing-file-2' } },
+            }),
+        };
+      }
+      return {
+        json: () =>
+          Promise.resolve({
+            success: true,
+            data: { exists: true, file: { id: 'existing-file-2' } },
+          }),
+      };
     });
 
     queueApi.retryFile(queueApi.queue.value[0].id);
@@ -345,27 +420,15 @@ describe('useUploadQueue public behavior', () => {
       { id: '3', status: 'success', progress: 100, error: null, speed: 0, hash: 'hash-3' },
     ];
 
-    mocks.requestAuth
-      .mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: {
-              exists: true,
-              file: { id: 'existing-1' },
-            },
-          }),
-      })
-      .mockResolvedValueOnce({
-        json: () =>
-          Promise.resolve({
-            success: true,
-            data: {
-              exists: true,
-              file: { id: 'existing-2' },
-            },
-          }),
-      });
+    mocks.requestAuth.mockImplementation(async (url) => {
+      // R2：每个文件先 check-hash 预检、命中后 instant-upload 认领建行。
+      // 按端点分发响应，避免两个并发上传的 mock 顺序耦合
+      const payload =
+        String(url).includes('instant-upload')
+          ? { exists: true, file: { id: `existing-${Math.random().toString(36).slice(2, 8)}` } }
+          : { exists: true, file: { id: 'prefetched' } };
+      return { json: () => Promise.resolve({ success: true, data: payload }) };
+    });
 
     queueApi.retryAllFailed();
     await flushPromises();

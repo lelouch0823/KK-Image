@@ -15,7 +15,7 @@ import {
   validatePurchaseOrderUnitCost,
   validatePurchaseOrderVariantItems,
 } from '../../../../../services/purchase-order-item-validation.js';
-import { BadRequestError } from '../../../errors.js';
+import { BadRequestError, ConflictError, NotFoundError } from '../../../errors.js';
 import {
   AddPurchaseOrderItemsSchema,
   UpdatePurchaseOrderItemSchema,
@@ -25,11 +25,25 @@ import { declareAuditRoutes } from '../../../_shared/audit-route-contract.js';
 import {
   publishPurchaseOrderCacheEvent,
   requireDraftPurchaseOrder,
-  requireMutationSuccess,
+  
   validateExistingItemQuantityUpdate,
 } from './helpers.js';
 
 const app = new Hono();
+
+/**
+ * R9（发现 9）：明细 UPDATE/DELETE 的 0 行命中区分两种情形——明细确实不存在
+ *（404）或并发把 PO 推离草稿态导致 SQL 草稿守卫拦截（409）。
+ */
+async function assertItemMutationBlockedReason(repo, poId, actionLabel) {
+  const po = await repo.findById(poId).catch(() => null);
+  if (po && po.status !== 'draft') {
+    throw new ConflictError(
+      `采购单状态已变化（当前 ${po.status}），仅草稿状态允许${actionLabel}明细`
+    );
+  }
+  throw new NotFoundError('明细不存在');
+}
 
 export const auditRouteDeclarations = declareAuditRoutes([
   {
@@ -125,7 +139,10 @@ app.patch('/:id/items/:itemId', zValidator('json', UpdatePurchaseOrderItemSchema
   await validateExistingItemQuantityUpdate(c.env.DB, existingItem, body.quantity);
 
   const updated = await repo.updateItem(poId, c.req.param('itemId'), body);
-  requireMutationSuccess(updated, '明细不存在');
+  if (!updated) {
+    // R9（发现 9）：草稿守卫在 SQL 谓词内——0 行命中可能是并发离开草稿态
+    await assertItemMutationBlockedReason(repo, poId, '修改');
+  }
 
   await publishPurchaseOrderCacheEvent(c, {
     eventType: 'purchase_order_item_updated',
@@ -161,7 +178,9 @@ app.delete('/:id/items/:itemId', async (c) => {
   await requireDraftPurchaseOrder(repo, poId, '删除明细');
 
   const removed = await repo.removeItem(poId, c.req.param('itemId'));
-  requireMutationSuccess(removed, '明细不存在');
+  if (!removed) {
+    await assertItemMutationBlockedReason(repo, poId, '删除');
+  }
 
   await publishPurchaseOrderCacheEvent(c, {
     eventType: 'purchase_order_item_deleted',

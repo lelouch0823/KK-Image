@@ -5,6 +5,7 @@
  */
 
 import { success, error } from '../utils/response.js';
+import { getChinaDateStr } from '../utils/date.js';
 import { OrderRepository } from '../../repositories/OrderRepository.js';
 import { isCronAuthorized } from '../utils/cron-auth.js';
 import { DomainOutboxPublisher } from '../../services/DomainOutboxPublisher.js';
@@ -75,7 +76,9 @@ export async function onRequest(context) {
     // 2. 检查超时未处理订单 (Pending > 24h) - 使用 Repository
     const pendingThreshold = now - ONE_DAY;
     const pendingOrders = await orderRepo.findStalePending(pendingThreshold);
-    const todayKey = new Date(now).toISOString().split('T')[0];
+    // C-R11（C-F14）：日期键用中国时区口径（业务时区）——toISOString 的 UTC
+    // 日期在北京 0:00-8:00 间仍是"昨天"，会让幂等键跨日重复/漏发
+    const todayKey = getChinaDateStr(now);
 
     for (const order of pendingOrders) {
       const idempotencyKey = `order_pending_reminder_due:${order.id}:${todayKey}`;
@@ -92,10 +95,10 @@ export async function onRequest(context) {
     }
 
     // 3. 检查临近交货期 (3天内) - 使用 Repository
-    const today = new Date();
-    const targetDate = new Date(today.getTime() + THREE_DAYS);
-    const todayStr = today.toISOString().split('T')[0];
-    const targetStr = targetDate.toISOString().split('T')[0];
+    // C-R11：同上，deadline 窗口边界用中国日期（deadline_date 是 'YYYY-MM-DD'
+    // 字符串比较，与统计口径一致）
+    const todayStr = getChinaDateStr(now);
+    const targetStr = getChinaDateStr(now + THREE_DAYS);
 
     const deadlineOrders = await orderRepo.findApproachingDeadline(todayStr, targetStr);
 

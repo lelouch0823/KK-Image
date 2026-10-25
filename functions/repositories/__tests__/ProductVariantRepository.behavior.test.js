@@ -244,6 +244,7 @@ describe('ProductVariantRepository behavior coverage', () => {
             updatedCount: 2,
             archivedCount: 3,
             reactivatedCount: 4,
+            stockIgnoredCount: 0,
           },
           variants: successRows,
         },

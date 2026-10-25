@@ -44,6 +44,20 @@ function createDbForAllocateCosts(poRecord) {
     bind: vi.fn(() => itemUpdateStmt),
     run: vi.fn(async () => ({ success: true, meta: { changes: 1 } })),
   };
+  // R6（发现 6）：allocateCosts 经资源锁互斥（command_idempotency 的
+  // INSERT OR IGNORE 认领 + finally DELETE 释放）
+  const lockStmt = {
+    bind: vi.fn(() => lockStmt),
+    run: vi.fn(async () => ({ success: true, meta: { changes: 1 } })),
+  };
+  const lockDeleteStmt = {
+    bind: vi.fn(() => lockDeleteStmt),
+    run: vi.fn(async () => ({ success: true, meta: { changes: 1 } })),
+  };
+  const lockStealStmt = {
+    bind: vi.fn(() => lockStealStmt),
+    run: vi.fn(async () => ({ success: true, meta: { changes: 0 } })),
+  };
 
   return {
     db: {
@@ -56,6 +70,15 @@ function createDbForAllocateCosts(poRecord) {
         }
         if (sql.includes('UPDATE product_variants') && sql.includes('SET cost_price')) {
           return variantRollbackStmt;
+        }
+        if (sql.includes('INSERT OR IGNORE INTO command_idempotency')) {
+          return lockStmt;
+        }
+        if (sql.includes('DELETE FROM command_idempotency')) {
+          return lockDeleteStmt;
+        }
+        if (sql.includes('UPDATE command_idempotency')) {
+          return lockStealStmt;
         }
         throw new Error(`Unexpected SQL: ${sql}`);
       }),

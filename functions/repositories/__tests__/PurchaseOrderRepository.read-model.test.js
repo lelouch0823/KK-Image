@@ -379,10 +379,14 @@ describe('PurchaseOrderRepository read model', () => {
     const repo = new PurchaseOrderRepository(db);
     const stats = await repo.getStats();
 
-    expect(db.prepare.mock.calls[0][0]).toContain('SUM(quantity)');
-    expect(db.prepare.mock.calls[0][0]).toContain('SUM(received_qty)');
+    expect(db.prepare.mock.calls[0][0]).toContain('SUM(poi.quantity)');
+    expect(db.prepare.mock.calls[0][0]).toContain('SUM(poi.received_qty)');
     expect(db.prepare.mock.calls[0][0]).toContain(
-      'SUM(MAX(quantity - received_qty - cancelled_qty, 0))'
+      'SUM(MAX(poi.quantity - poi.received_qty - poi.cancelled_qty, 0))'
+    );
+    // R11（发现 12）：明细聚合 JOIN 采购单并排除 draft/cancelled
+    expect(db.prepare.mock.calls[0][0]).toContain(
+      "po2.status NOT IN ('draft', 'cancelled')"
     );
     expect(stats).toEqual(
       expect.objectContaining({

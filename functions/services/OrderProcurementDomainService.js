@@ -504,7 +504,9 @@ export class OrderProcurementDomainService {
               variant_id: poItem.variant_id,
               quantity_delta: receivedQty,
               purchase_receipt_id: receiptId,
-              // C-L2：只携带 delta——batch 外读到的绝对值在并发下可能已陈旧
+              // R14（发现 15）：on_hand_after/available_after 是 batch 外读取的
+              // 快照近似值，并发写入下不代表提交后真实值——仅供审计参考，
+              // 权威余额以 inventory_balances 为准（quantity_delta 是精确的）
               on_hand_after: nextInventory.on_hand,
               available_after: nextInventory.available,
             }),

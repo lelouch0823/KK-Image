@@ -3,6 +3,9 @@ import {
     safeParseObject,
     toFiniteNumber,
 } from '../helpers';
+// C-R4（审查 C-F6）：后端 title/content 是 i18n 描述符（JSON 或裸 key），
+// 此前原样透传导致抽屉显示 `{"key":...}` 原文——统一在 normalize 层翻译
+import { renderNotificationText } from '../i18n/notifications';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -48,8 +51,8 @@ export function normalizeSalesNotification(raw: unknown): NormalizedSalesNotific
     return {
         id: pickFirstString([record.id]),
         type: pickFirstString([record.type], 'system'),
-        title: pickFirstString([record.title]),
-        content: pickFirstString([record.content]),
+        title: renderNotificationText(pickFirstString([record.title])),
+        content: renderNotificationText(pickFirstString([record.content])),
         link: pickFirstString([record.link]),
         isRead: !unread,
         unread,

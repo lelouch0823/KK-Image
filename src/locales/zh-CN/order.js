@@ -75,6 +75,8 @@ export default {
     skuPlaceholder: '如：AF1-001',
     quantity: '预定数量',
     quantityPlaceholder: '请输入数量',
+    unitPrice: '单价（元）',
+    unitPricePlaceholder: '选填，未填按 0 计应收',
     recentInputs: '最近使用',
   },
 

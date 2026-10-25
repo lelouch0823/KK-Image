@@ -35,6 +35,20 @@ function buildDb({ pendingItems, failOnBatch }) {
           if (sql.includes('FROM stocktake_items si')) {
             return { results: pendingItems.filter((item) => !item.filtered) };
           }
+          // R1 重基线：adjustInventory 过账前读取当前 on_hand 作为基线；
+          // 本测试模拟无漂移场景（基线 = 快照 system_qty）
+          if (sql.includes('FROM inventory_balances')) {
+            const ids = statement.params || [];
+            const byVariant = new Map(pendingItems.map((item) => [item.variant_id, item]));
+            return {
+              results: ids
+                .filter((variantId) => byVariant.has(variantId))
+                .map((variantId) => ({
+                  variant_id: variantId,
+                  on_hand: byVariant.get(variantId).system_qty,
+                })),
+            };
+          }
           return { results: [] };
         },
         async first() {

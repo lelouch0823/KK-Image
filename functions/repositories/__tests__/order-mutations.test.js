@@ -3,7 +3,6 @@ import path from 'node:path';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   updateComposite,
-  updateData,
   updateStatus,
   create,
   batchUpdateStatus,
@@ -196,116 +195,6 @@ describe('Order Mutations SQL Binding', () => {
     };
   });
 
-  describe('updateData()', () => {
-    it('should bind product_id to SQL when productId is provided', async () => {
-      const orderId = 'test-order-123';
-      const newData = { name: 'test item' };
-      const actorType = 'admin';
-      const productId = 'prod-abc';
-
-      await updateData(db, orderId, newData, actorType, productId);
-
-      // Verify parepare was called with product_id in SET clause
-      expect(db.prepare.mock.calls.length).toBeGreaterThanOrEqual(2);
-      const orderUpdateIndex = db.prepare.mock.calls.findIndex(([sql]) =>
-        sql.includes('UPDATE orders')
-      );
-      const sql = db.prepare.mock.calls[orderUpdateIndex][0];
-      expect(sql).toContain('product_id = ?');
-      expect(sql).toContain('archived_at IS NULL');
-
-      // Verify bind parameters include the productId
-      // Bind params order: [JSON.stringify(newData), timestamp, productId, orderId]
-      expect(db.bind.mock.calls.length).toBeGreaterThanOrEqual(2);
-      const bindArgs = db.bind.mock.calls[orderUpdateIndex];
-      expect(bindArgs).toContain(productId);
-      expect(bindArgs[bindArgs.length - 1]).toBe(orderId);
-    });
-
-    it('should NOT bind product_id when productId is undefined', async () => {
-      const orderId = 'test-order-123';
-      const newData = { name: 'test item' };
-      const actorType = 'sales';
-
-      await updateData(db, orderId, newData, actorType, undefined);
-
-      expect(db.prepare.mock.calls.length).toBeGreaterThanOrEqual(2);
-      const orderUpdateIndex = db.prepare.mock.calls.findIndex(([sql]) =>
-        sql.includes('UPDATE orders')
-      );
-      const sql = db.prepare.mock.calls[orderUpdateIndex][0];
-      expect(sql).not.toContain('product_id = ?');
-
-      expect(db.bind.mock.calls.length).toBeGreaterThanOrEqual(2);
-      const bindArgs = db.bind.mock.calls[orderUpdateIndex];
-      expect(bindArgs).not.toContain(undefined);
-    });
-
-    it('should handle quantity column update specifically', async () => {
-      const orderId = 'test-order-123';
-      const newData = { name: 'test item', quantity: 15 };
-      const actorType = 'admin';
-
-      await updateData(db, orderId, newData, actorType);
-
-      const orderUpdateIndex = db.prepare.mock.calls.findIndex(([sql]) =>
-        sql.includes('UPDATE orders')
-      );
-      const sql = db.prepare.mock.calls[orderUpdateIndex][0];
-      expect(sql).toContain('quantity = ?');
-
-      const bindArgs = db.bind.mock.calls[orderUpdateIndex];
-      expect(bindArgs).toContain(15);
-    });
-
-    it('upserts order_payloads and summary fields together when editing data', async () => {
-      const orderId = 'test-order-payload';
-      const newData = { name: 'Edited Item', brand: 'KK', sku: 'SKU-2' };
-
-      await updateData(db, orderId, newData, 'admin');
-
-      const orderUpdateIndex = db.prepare.mock.calls.findIndex(([sql]) =>
-        sql.includes('UPDATE orders')
-      );
-      expect(db.prepare.mock.calls[orderUpdateIndex][0]).toContain('summary_name = ?');
-      expect(db.prepare.mock.calls[orderUpdateIndex][0]).toContain('summary_brand = ?');
-      expect(db.prepare.mock.calls[orderUpdateIndex][0]).toContain('summary_sku = ?');
-      expect(db.prepare.mock.calls.some(([sql]) => sql.includes('INSERT INTO order_payloads'))).toBe(
-        true
-      );
-
-      const headerBindArgs = db.bind.mock.calls[orderUpdateIndex];
-      expect(headerBindArgs).toContain('Edited Item');
-      expect(headerBindArgs).toContain('KK');
-      expect(headerBindArgs).toContain('SKU-2');
-    });
-
-    it('rejects archived orders before updateData writes sidecars', async () => {
-      db.first.mockResolvedValueOnce({ archived_at: 1710000000000 });
-
-      await expect(updateData(db, 'o-archived', { name: 'Blocked' }, 'admin')).rejects.toThrow(
-        '订单已归档'
-      );
-
-      expect(db.batch).not.toHaveBeenCalled();
-    });
-
-    it('aborts before updateData sidecars when the active order update changes no rows', async () => {
-      const guardedDb = createSequentialGuardDb({ orderUpdateChanges: 0 });
-
-      await expect(
-        updateData(guardedDb, 'o-raced-archive', { name: 'Blocked' }, 'admin')
-      ).rejects.toThrow();
-
-      expect(
-        guardedDb.executedSql.some((sql) => sql.includes('INSERT INTO order_payloads'))
-      ).toBe(false);
-      expect(
-        guardedDb.executedSql.some((sql) => sql.includes('UPDATE order_lines'))
-      ).toBe(false);
-    });
-  });
-
   describe('create()', () => {
     it('should include product_id in the INSERT statement', async () => {
       const params = {
@@ -412,15 +301,18 @@ describe('Order Mutations SQL Binding', () => {
       expect(bindArgs[1]).toBe(params.id); // order_id
       expect(bindArgs[2]).toBe(params.productId);
       expect(bindArgs[3]).toBe(params.variantId);
-      expect(bindArgs[4]).toBe(params.variantId); // unit_price 快照子查询参数
-      expect(bindArgs[5]).toBe(params.data.name);
-      expect(bindArgs[6]).toBe(params.data.sku);
-      expect(bindArgs[8]).toBe(params.mainImageId);
-      expect(bindArgs[9]).toBe(3);
-      expect(bindArgs[10]).toBe(0);
-      expect(bindArgs[15]).toBe('unprocured');
+      // R2（F2）：COALESCE(手工 unitPrice, 变体售价)——绑定变体的行
+      // unitPrice 恒 null，价格取子查询
+      expect(bindArgs[4]).toBe(null);
+      expect(bindArgs[5]).toBe(params.variantId); // unit_price 快照子查询参数
+      expect(bindArgs[6]).toBe(params.data.name);
+      expect(bindArgs[7]).toBe(params.data.sku);
+      expect(bindArgs[9]).toBe(params.mainImageId);
+      expect(bindArgs[10]).toBe(3);
+      expect(bindArgs[11]).toBe(0);
+      expect(bindArgs[16]).toBe('unprocured');
 
-      const snapshotSpecs = JSON.parse(bindArgs[7]);
+      const snapshotSpecs = JSON.parse(bindArgs[8]);
       expect(snapshotSpecs).toEqual({
         category: 'Outerwear',
         size: 'L',
@@ -448,7 +340,7 @@ describe('Order Mutations SQL Binding', () => {
       const orderLineBindArgs = db.bind.mock.calls[1];
 
       expect(orderBindArgs[8]).toBe(1);
-      expect(orderLineBindArgs[9]).toBe(1); // ordered_qty（unit_price 快照占位后移）
+      expect(orderLineBindArgs[10]).toBe(1); // ordered_qty（unit_price 快照占位后移）
     });
 
     it('seeds arrived orders with ready line progress instead of unprocured defaults', async () => {
@@ -465,13 +357,13 @@ describe('Order Mutations SQL Binding', () => {
 
       const orderLineBindArgs = db.bind.mock.calls[1];
       // 索引整体后移 1 位：unit_price 快照占位插在 variant_id（索引 3）之后
-      expect(orderLineBindArgs[9]).toBe(2);
       expect(orderLineBindArgs[10]).toBe(2);
       expect(orderLineBindArgs[11]).toBe(2);
-      expect(orderLineBindArgs[12]).toBe(0);
+      expect(orderLineBindArgs[12]).toBe(2);
       expect(orderLineBindArgs[13]).toBe(0);
       expect(orderLineBindArgs[14]).toBe(0);
-      expect(orderLineBindArgs[15]).toBe('ready');
+      expect(orderLineBindArgs[15]).toBe(0);
+      expect(orderLineBindArgs[16]).toBe('ready');
     });
 
     it('rejects order create payloads that exceed a single atomic D1 batch (B17)', async () => {
@@ -540,12 +432,12 @@ describe('Order Mutations SQL Binding', () => {
 
       expect(lineInsertStatements).toHaveLength(2);
       // params 索引后移 1：unit_price 快照占位插在 variant_id（索引 3）之后
-      expect(lineInsertStatements[0].params[5]).toBe('Line A');
-      expect(lineInsertStatements[0].params[6]).toBe('SKU-A');
-      expect(lineInsertStatements[0].params[9]).toBe(2);
-      expect(lineInsertStatements[1].params[5]).toBe('Line B');
-      expect(lineInsertStatements[1].params[6]).toBe('SKU-B');
-      expect(lineInsertStatements[1].params[9]).toBe(3);
+      expect(lineInsertStatements[0].params[6]).toBe('Line A');
+      expect(lineInsertStatements[0].params[7]).toBe('SKU-A');
+      expect(lineInsertStatements[0].params[10]).toBe(2);
+      expect(lineInsertStatements[1].params[6]).toBe('Line B');
+      expect(lineInsertStatements[1].params[7]).toBe('SKU-B');
+      expect(lineInsertStatements[1].params[10]).toBe(3);
     });
   });
 
@@ -606,14 +498,17 @@ describe('Order Mutations SQL Binding', () => {
       expect(orderUpdateIndex).toBeGreaterThanOrEqual(0);
       expect(db.prepare.mock.calls[orderUpdateIndex][0]).toContain('archived_at IS NULL');
 
+      // R3（F3）：数量下限守卫在 id/orderId 之后追加绑定数量（末位），
+      // 谓词为 `? >= MAX(shipped, reserved, received)`
       const bindArgs = db.bind.mock.calls.find(
         (args) =>
           args.includes('prod-2') &&
           args.includes('var-2') &&
           args.includes('Updated Item') &&
           args.includes('SKU-2') &&
-          args[args.length - 2] === 'line-1' &&
-          args[args.length - 1] === 'o-sync'
+          args[args.length - 3] === 'line-1' &&
+          args[args.length - 2] === 'o-sync' &&
+          args[args.length - 1] === 4
       );
       expect(bindArgs).toBeTruthy();
       expect(bindArgs).toContain('prod-2');
@@ -622,7 +517,7 @@ describe('Order Mutations SQL Binding', () => {
       expect(bindArgs).toContain('SKU-2');
       expect(bindArgs).toContain('img-2');
       expect(bindArgs).toContain(4);
-      expect(bindArgs[bindArgs.length - 1]).toBe('o-sync');
+      expect(bindArgs[bindArgs.length - 1]).toBe(4);
 
       const snapshotSpecsArg = bindArgs.find(
         (value) =>
@@ -847,12 +742,12 @@ describe('Order Mutations SQL Binding', () => {
       expect(deleteLineStatement.params).toEqual(['o-multi-update']);
       expect(lineInsertStatements).toHaveLength(2);
       // params 索引后移 1：unit_price 快照占位插在 variant_id（索引 3）之后
-      expect(lineInsertStatements[0].params[5]).toBe('Line A');
-      expect(lineInsertStatements[0].params[6]).toBe('SKU-A');
-      expect(lineInsertStatements[0].params[9]).toBe(2);
-      expect(lineInsertStatements[1].params[5]).toBe('Line B');
-      expect(lineInsertStatements[1].params[6]).toBe('SKU-B');
-      expect(lineInsertStatements[1].params[9]).toBe(3);
+      expect(lineInsertStatements[0].params[6]).toBe('Line A');
+      expect(lineInsertStatements[0].params[7]).toBe('SKU-A');
+      expect(lineInsertStatements[0].params[10]).toBe(2);
+      expect(lineInsertStatements[1].params[6]).toBe('Line B');
+      expect(lineInsertStatements[1].params[7]).toBe('SKU-B');
+      expect(lineInsertStatements[1].params[10]).toBe(3);
     });
 
     it('updateComposite rejects a structural rewrite up front when prefetched lines carry fulfillment progress', async () => {

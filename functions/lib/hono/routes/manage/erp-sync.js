@@ -14,11 +14,14 @@ const app = new Hono();
 
 /**
  * 创建完整的 ErpSyncService 实例（注入所有必需仓库）
+ * 审查发现 3：必须传入 db——syncAll 的同步租约与 webhook 去重都依赖
+ * this.db，旧装配漏传导致全量同步必然崩溃、去重被静默跳过
  * @param {D1Database} db
  * @returns {ErpSyncService}
  */
 function createErpSyncService(db) {
   return new ErpSyncService({
+    db,
     erpRepo: new ErpSyncRepository(db),
     productRepo: new ProductRepository(db),
     customerRepo: new CustomerRepository(db),

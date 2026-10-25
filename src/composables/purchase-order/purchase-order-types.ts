@@ -109,15 +109,18 @@ export interface AddItemsPayload {
   [key: string]: unknown;
 }
 
-/** 收货登记载荷 */
+/**
+ * 收货登记载荷（R13/发现 14：字段名与后端 RecordReceiptsSchema 对齐——
+ * purchase_order_item_id / received_qty，调用方实际构造即为此形态）
+ */
 export interface RecordReceiptsPayload {
-  items?: { itemId: string; quantity: number }[];
+  items?: { purchase_order_item_id: string; received_qty: number }[];
   [key: string]: unknown;
 }
 
-/** 缺口关闭载荷 */
+/** 缺口关闭载荷（同上，close_qty 与后端 schema 对齐） */
 export interface CloseShortagesPayload {
-  items?: { itemId: string; closeQty?: number }[];
+  items?: { purchase_order_item_id: string; close_qty?: number }[];
   [key: string]: unknown;
 }
 

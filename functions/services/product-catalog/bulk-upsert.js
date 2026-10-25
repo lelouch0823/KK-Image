@@ -14,6 +14,9 @@ const normalizeStats = (stats = {}, fallback = {}) => ({
   updatedCount: stats?.updatedCount ?? fallback.updatedCount ?? 0,
   archivedCount: stats?.archivedCount ?? stats?.deletedCount ?? fallback.archivedCount ?? 0,
   reactivatedCount: stats?.reactivatedCount ?? fallback.reactivatedCount ?? 0,
+  // R2（审查发现 2）：导入对已匹配的已有变体忽略 stock_quantity 的数量，
+  // 供导入结果向前端透出提示
+  stockIgnoredCount: stats?.stockIgnoredCount ?? fallback.stockIgnoredCount ?? 0,
 });
 
 async function rollbackFailedImportPlan({ db, plan, productRepo, variantRepo, dimensionRepo }) {
@@ -220,5 +223,8 @@ export async function executeBulkProductImportUpsert({
     summary.updatedVariants += stats.updatedCount;
     summary.archivedVariants += stats.archivedCount;
     summary.reactivatedVariants += stats.reactivatedCount;
+    // R2（审查发现 2）：汇总被忽略的库存列数量，导入结果向用户提示
+    summary.ignoredStockVariants =
+      (summary.ignoredStockVariants || 0) + (stats.stockIgnoredCount || 0);
   }
 }

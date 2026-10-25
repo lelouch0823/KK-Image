@@ -290,6 +290,14 @@ const normalizeEditableText = (value, fallback = '') => {
   return normalized || fallback;
 };
 
+// R2（F2）：手工行单价归一（两位小数、非负；空值 → null）
+const normalizeEditableNumber = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return Math.round(parsed * 100) / 100;
+};
+
 const buildLineBoundProduct = (line = {}, fallback = {}) => {
   const source = line.boundProduct || fallback.boundProduct;
   if (source) return source;
@@ -331,6 +339,8 @@ const normalizeEditableLine = (line = {}, fallback = {}) =>
     quantity: Math.max(1, Math.trunc(Number(line.quantity ?? line.orderedQuantity ?? 1) || 1)),
     productId: line.productId ?? fallback.productId ?? null,
     variantId: line.variantId ?? fallback.variantId ?? null,
+    // R2（F2）：手工行单价快照回显（绑定变体的行置空）
+    unitPrice: line.variantId ? null : normalizeEditableNumber(line.unitPrice ?? line.unit_price),
     boundProduct: buildLineBoundProduct(line, fallback),
     boundProductVariant: line.boundProductVariant ?? fallback.boundProductVariant ?? null,
   });
@@ -351,6 +361,8 @@ const serializeEditableLine = (line = {}) => {
     quantity: Math.max(1, Math.trunc(Number(normalized.quantity ?? 1) || 1)),
     productId: normalized.productId ?? null,
     variantId: normalized.variantId ?? null,
+    // R2（F2）：手工行单价随行提交（绑定变体的行不携带）
+    unitPrice: normalized.variantId ? null : normalized.unitPrice ?? null,
   };
 };
 

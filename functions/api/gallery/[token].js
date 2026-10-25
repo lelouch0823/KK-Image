@@ -92,9 +92,11 @@ async function buildGalleryResponse(folder, files, subfolders, env) {
 }
 
 async function loadGalleryData(env, shareToken) {
+  // R1（审查 F-3）：回收站中的文件夹分享必须立即失效——软删除只置 is_deleted，
+  // 不清 share_token/is_public，缺少过滤会让客户在冷静期内继续拉取全部照片。
   const folder = await env.DB.prepare(
     `
-      SELECT * FROM folders WHERE share_token = ?
+      SELECT * FROM folders WHERE share_token = ? AND is_deleted = 0
     `
   )
     .bind(shareToken)

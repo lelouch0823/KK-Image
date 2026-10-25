@@ -18,16 +18,21 @@ const SNAPSHOT_JOIN_SQL = `
     ON demand_snapshot.variant_id = vdp.variant_id
 `;
 
+// R12（发现 13）：到岸成本只统计真实发生采购的行——排除未收货（分摊恒 0，
+// 会把均值拉低）与已取消采购单的明细
 const COST_JOIN_SQL = `
   LEFT JOIN (
     SELECT
-      variant_id,
-      AVG(unit_cost) AS avg_unit_cost,
-      AVG(allocated_freight) AS avg_freight,
-      AVG(allocated_tariff) AS avg_tariff
-    FROM purchase_order_items
-    WHERE variant_id IS NOT NULL
-    GROUP BY variant_id
+      poi.variant_id,
+      AVG(poi.unit_cost) AS avg_unit_cost,
+      AVG(poi.allocated_freight) AS avg_freight,
+      AVG(poi.allocated_tariff) AS avg_tariff
+    FROM purchase_order_items poi
+    JOIN purchase_orders po ON po.id = poi.po_id
+    WHERE poi.variant_id IS NOT NULL
+      AND poi.received_qty > 0
+      AND po.status NOT IN ('cancelled')
+    GROUP BY poi.variant_id
   ) pc ON pc.variant_id = vdp.variant_id
 `;
 

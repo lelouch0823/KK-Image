@@ -62,7 +62,7 @@ describe('ProductVariantRepository external codes', () => {
     expect(upsertStmt.params).toContain('SUP-TEE-Y-S');
   });
 
-  it('syncVariants should update stock_quantity in the upsert update clause', async () => {
+  it('syncVariants must NOT update stock_quantity in the upsert update clause (R2/发现 2)', async () => {
     db.prepare.mockImplementation((sql) => {
       const stmt = createPreparedStatement(sql);
       if (isVariantLookupSql(sql)) {
@@ -88,7 +88,8 @@ describe('ProductVariantRepository external codes', () => {
 
     const statements = db.batch.mock.calls[0][0];
     const upsertStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO product_variants'));
-    expect(upsertStmt.sql).toContain('stock_quantity = excluded.stock_quantity');
+    // R2：已有变体的库存不允许被目录同步绝对覆盖（并发出入库会被静默丢失）
+    expect(upsertStmt.sql).not.toContain('stock_quantity = excluded.stock_quantity');
   });
 
   it('syncVariants should throw friendly error when barcode violates unique constraint', async () => {

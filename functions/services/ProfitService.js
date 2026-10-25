@@ -118,7 +118,11 @@ export class ProfitService {
         productMap.set(key, { productName: key, revenue: 0, cost: 0, orderLineCount: 0 });
       }
       const entry = productMap.get(key);
-      const qty = Number(row.ordered_qty) || 0;
+      // R8（F8）：净数量口径（ordered - cancelled），与统计口径一致
+      const qty = Math.max(
+        (Number(row.ordered_qty) || 0) - (Number(row.cancelled_qty) || 0),
+        0
+      );
       const unitPrice = this._resolveUnitPrice(row);
       const unitCost = this._resolveUnitCost(row);
 
@@ -161,7 +165,11 @@ export class ProfitService {
         dateMap.set(date, { date, revenue: 0, cost: 0 });
       }
       const entry = dateMap.get(date);
-      const qty = Number(row.ordered_qty) || 0;
+      // R8（F8）：净数量口径（ordered - cancelled），与统计口径一致
+      const qty = Math.max(
+        (Number(row.ordered_qty) || 0) - (Number(row.cancelled_qty) || 0),
+        0
+      );
       const unitPrice = this._resolveUnitPrice(row);
       const unitCost = this._resolveUnitCost(row);
 
@@ -228,7 +236,12 @@ export class ProfitService {
     const lineProfits = [];
 
     for (const line of lines) {
-      const qty = Number(line.ordered_qty) || 0;
+      // R8（F8）：与 OrderStatsRepository/ORDER_LINE_NET_AMOUNT_SQL 同口径——
+      // 数量取净数量（ordered - cancelled），取消部分不计收入/成本
+      const qty = Math.max(
+        (Number(line.ordered_qty) || 0) - (Number(line.cancelled_qty) || 0),
+        0
+      );
       const unitPrice = this._resolveUnitPrice(line);
       const unitCost = this._resolveUnitCost(line);
       const revenue = qty * unitPrice;

@@ -1,4 +1,5 @@
 import { BadRequestError } from '../lib/hono/errors.js';
+import { D1_MAX_BATCH_SIZE } from '../api/utils/constants.js';
 import { CommandIdempotencyRepository } from '../repositories/CommandIdempotencyRepository.js';
 import { DomainOutboxRepository } from '../repositories/DomainOutboxRepository.js';
 import { getDomainEventDefinition } from './DomainEventCatalog.js';
@@ -341,6 +342,25 @@ export class PurchaseOrderShortageClosureService {
     );
 
     const allStatements = statements.concat(orderStatements, outboxStatements, finalizeStatements);
+
+    // R10（发现 10）：语句数预算预检（与收货路径 countReceiptWriteStatements 对齐）——
+    // 短缺关闭的明细/关联订单语句全部进同一个 batch（整单原子性不可分块），
+    // 超过 D1 上限会让 db.batch 抛原始错误（500）。提交前按准确语句数拒绝
+    // 并引导分批提交，而非让用户拿到无法理解的 D1 报错
+    if (allStatements.length > D1_MAX_BATCH_SIZE) {
+      cleanupReservedCommand({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        db: this.db,
+        ownsReservation,
+        commandId: commandReservation.record?.command_id,
+      }).catch((cleanupError) => {
+        console.error('[ShortageClosure] reservation cleanup failed:', cleanupError);
+      });
+      throw new BadRequestError(
+        `单次关闭明细过多（产生 ${allStatements.length} 条写入语句，` +
+          `超出单事务上限 ${D1_MAX_BATCH_SIZE}），请减少单次关闭明细数后分批提交`
+      );
+    }
     let cleanedUpReservation = false;
     const cleanupReservation = async () => {
       if (cleanedUpReservation) return;

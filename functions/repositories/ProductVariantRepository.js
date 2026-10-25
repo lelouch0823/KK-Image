@@ -9,6 +9,43 @@ const normalizeAlertThreshold = (value, fallback = 10) => {
     const numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : fallback;
 };
+
+/**
+ * R2（审查发现 2）：新建变体初始建账的台账初始行（ledger + events）。
+ * 与 inventory_balances 初始 INSERT 同 batch 提交，保证
+ * Σ(inventory_ledger.quantity_delta) = inventory_balances.on_hand 从 0 起
+ * 成立——此前建账是"无台账的绝对写"，余额与事件溯源从第一天就背离。
+ * event_type='manual_adjustment' 在 inventory_events 的 CHECK 白名单内；
+ * reference_type/source_type='variant_init'、metadata.source='catalog_create'
+ * 标识目录建账来源，供对账区分盘点/收货等业务调整。
+ */
+function buildVariantInitLedgerStatements(db, { variantId, productId, initialStock, timestamp }) {
+    const metadata = JSON.stringify({ source: 'catalog_create', product_id: productId });
+    return [
+        db
+            .prepare(
+                `INSERT INTO inventory_ledger (id, variant_id, event_type, quantity_delta, reference_type, reference_id, occurred_at, metadata, created_at)
+                 VALUES (?, ?, 'manual_adjustment', ?, 'variant_init', ?, ?, ?, ?)`
+            )
+            .bind(
+                generateId(),
+                variantId,
+                initialStock,
+                variantId,
+                timestamp,
+                metadata,
+                timestamp
+            ),
+        db
+            .prepare(
+                `INSERT INTO inventory_events (
+                    id, variant_id, order_line_id, purchase_receipt_id, event_type, quantity_delta,
+                    source_type, source_id, metadata, occurred_at, created_at
+                ) VALUES (?, ?, NULL, NULL, 'manual_adjustment', ?, 'variant_init', ?, ?, ?, ?)`
+            )
+            .bind(generateId(), variantId, initialStock, variantId, metadata, timestamp, timestamp),
+    ];
+}
 /** 库存余额 JOIN 子句 */
 const VARIANT_INVENTORY_JOIN = 'LEFT JOIN inventory_balances ib ON ib.variant_id = pv.id';
 /** 库存余额 SELECT 字段 */
@@ -74,12 +111,24 @@ export class ProductVariantRepository {
             const variantSignature = this.buildVariantSignature(optionsValues);
             statements.push(this.db.prepare(`INSERT INTO product_variants (id, product_id, sku, price, cost_price, stock_quantity, alert_threshold, options_values, variant_signature, image_id, status, barcode, supplier_sku, created_at, updated_at)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(id, productId, sku, Number(v.price) || 0, v.cost_price !== undefined && v.cost_price !== null ? Number(v.cost_price) : null, Number(v.stock_quantity) || 0, normalizeAlertThreshold(v.alert_threshold), JSON.stringify(optionsValues), variantSignature, v.image_id || null, v.status || 'active', this.normalizeExternalCode(v.barcode), this.normalizeExternalCode(v.supplier_sku), timestamp, timestamp));
+            // R2（审查发现 2）：新变体初始建账必须同时写台账——balances 初始
+            // 量与 ledger/event 初始行同 batch 提交，保证 Σledger = on_hand
+            // 从 0 起成立；initialStock 为 0 时不产生零值台账噪音
+            const initialStock = Math.max(Number(v.stock_quantity) || 0, 0);
             statements.push(this.db.prepare(`INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
                      VALUES (?, ?, 0, ?, ?)
                      ON CONFLICT(variant_id) DO UPDATE SET
                         on_hand = excluded.on_hand,
                         available = excluded.on_hand - inventory_balances.reserved,
-                        updated_at = excluded.updated_at`).bind(id, Math.max(Number(v.stock_quantity) || 0, 0), Math.max(Number(v.stock_quantity) || 0, 0), timestamp));
+                        updated_at = excluded.updated_at`).bind(id, initialStock, initialStock, timestamp));
+            if (initialStock > 0) {
+                statements.push(...buildVariantInitLedgerStatements(this.db, {
+                    variantId: id,
+                    productId,
+                    initialStock,
+                    timestamp,
+                }));
+            }
             const stockQuantity = Number(v.stock_quantity) || 0;
             // 应用层计算 variant_code（与数据库 trigger trg_variants_generate_variant_code 一致）
             const variant_code = 'V' + id.replace(/-/g, '').toUpperCase().slice(0, 12);
@@ -328,6 +377,11 @@ export class ProductVariantRepository {
         const timestamp = now();
         const statements = collectMode ? (externalStatements || []) : [];
         const incomingList = Array.isArray(variantsData) ? variantsData : [];
+        // R2（审查发现 2）：对已匹配的已有变体忽略传入的 stock_quantity 并
+        // 汇总告知调用方——库存的唯一变更入口是盘点/收货/履约等带台账的
+        // 业务事件，目录编辑/导入绝不再绝对覆盖 on_hand（旧实现会在并发
+        // 出入库下丢失库存变动且不留任何 ledger 痕迹）
+        const stockIgnored = [];
         const existingResult = existingRows == null && !collectMode
             ? await this.db
                 .prepare(`
@@ -391,17 +445,25 @@ export class ProductVariantRepository {
                 updatedCount += 1;
             }
             const sku = this.buildVariantSku(v.sku, id);
-            const resolvedStockQuantity = v.stock_quantity !== undefined
-                ? Number(v.stock_quantity) || 0
+            // R2：已有变体（含归档复活）不消费传入 stock_quantity——ON CONFLICT
+            // UPDATE 分支不再更新 stock_quantity，新建分支才使用初始值建账
+            const isNewVariant = !targetExisting;
+            const incomingStockProvided = v.stock_quantity !== undefined;
+            const resolvedStockQuantity = isNewVariant
+                ? Math.max(Number(v.stock_quantity) || 0, 0)
                 : Math.max(0, Number(targetExisting?.stock_quantity) || 0);
+            if (!isNewVariant && incomingStockProvided) {
+                stockIgnored.push(id);
+            }
             retainedIds.add(id);
+            // 注意 ON CONFLICT UPDATE 的 SET 子句不含 stock_quantity：目录
+            // 同步只维护商品属性，库存一律由带台账的业务事件推进（R2）
             statements.push(this.db.prepare(`INSERT INTO product_variants (id, product_id, sku, price, cost_price, stock_quantity, alert_threshold, options_values, variant_signature, image_id, status, barcode, supplier_sku, created_at, updated_at)
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                      ON CONFLICT(id) DO UPDATE SET
                         sku = excluded.sku,
                         price = excluded.price,
                         cost_price = excluded.cost_price,
-                        stock_quantity = excluded.stock_quantity,
                         alert_threshold = excluded.alert_threshold,
                         options_values = excluded.options_values,
                         variant_signature = excluded.variant_signature,
@@ -410,12 +472,24 @@ export class ProductVariantRepository {
                         barcode = excluded.barcode,
                         supplier_sku = excluded.supplier_sku,
                         updated_at = excluded.updated_at`).bind(id, productId, sku, Number(v.price) || 0, v.cost_price !== undefined && v.cost_price !== null ? Number(v.cost_price) : null, resolvedStockQuantity, normalizeAlertThreshold(v.alert_threshold), JSON.stringify(optionsValues), variantSignature, v.image_id || null, v.status || 'active', this.normalizeExternalCode(v.barcode), this.normalizeExternalCode(v.supplier_sku), timestamp, timestamp));
-            statements.push(this.db.prepare(`INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
-                     VALUES (?, ?, 0, ?, ?)
-                     ON CONFLICT(variant_id) DO UPDATE SET
-                        on_hand = excluded.on_hand,
-                        available = MAX(0, excluded.on_hand - inventory_balances.reserved),
-                        updated_at = excluded.updated_at`).bind(id, resolvedStockQuantity, resolvedStockQuantity, timestamp));
+            if (isNewVariant) {
+                // R2：新变体初始建账与 createBatch 同口径——balances 初始值 +
+                // ledger/events 初始行同 batch，Σledger = on_hand 从 0 起成立
+                statements.push(this.db.prepare(`INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
+                         VALUES (?, ?, 0, ?, ?)
+                         ON CONFLICT(variant_id) DO UPDATE SET
+                            on_hand = excluded.on_hand,
+                            available = MAX(0, excluded.on_hand - inventory_balances.reserved),
+                            updated_at = excluded.updated_at`).bind(id, resolvedStockQuantity, resolvedStockQuantity, timestamp));
+                if (resolvedStockQuantity > 0) {
+                    statements.push(...buildVariantInitLedgerStatements(this.db, {
+                        variantId: id,
+                        productId,
+                        initialStock: resolvedStockQuantity,
+                        timestamp,
+                    }));
+                }
+            }
             results.push({ ...v, id, sku, product_id: productId });
         }
         const idsToArchive = resolvedExistingRows
@@ -445,6 +519,8 @@ export class ProductVariantRepository {
         results.archivedCount = archivedCount;
         results.reactivatedCount = reactivatedCount;
         results.deletedCount = archivedCount;
+        // R2：被忽略的 stock_quantity 对应的变体 id 清单，调用方负责日志/提示
+        results.stockIgnored = stockIgnored;
         return results;
     }
     async syncVariants(productId, variantsData) {
@@ -459,6 +535,13 @@ export class ProductVariantRepository {
         for (const plan of planList) {
             try {
                 const results = await this.syncVariantPlan(plan.productId, plan.variantsToSync, plan.existingVariants || []);
+                // R2：导入对已匹配的已有变体忽略 stock_quantity，逐计划告警
+                if (Array.isArray(results.stockIgnored) && results.stockIgnored.length > 0) {
+                    this.warnIgnoredStock(
+                        `bulk import ${plan?.productId || plan?.itemKey || ''}`,
+                        results.stockIgnored
+                    );
+                }
                 successes.push({
                     itemKey: plan.itemKey,
                     productId: plan.productId,
@@ -467,6 +550,10 @@ export class ProductVariantRepository {
                         updatedCount: results.updatedCount ?? plan?.fallbackStats?.updatedCount ?? 0,
                         archivedCount: results.archivedCount ?? plan?.fallbackStats?.archivedCount ?? 0,
                         reactivatedCount: results.reactivatedCount ?? plan?.fallbackStats?.reactivatedCount ?? 0,
+                        // R2：导入对已有变体忽略 stock_quantity 的数量（供结果提示）
+                        stockIgnoredCount: Array.isArray(results.stockIgnored)
+                            ? results.stockIgnored.length
+                            : 0,
                     },
                     variants: results,
                 });
@@ -480,5 +567,17 @@ export class ProductVariantRepository {
             }
         }
         return { successes, failures };
+    }
+
+    /**
+     * R2：目录编辑/导入的 stock_quantity 忽略告警（由调用方在响应/日志中透出）
+     */
+    warnIgnoredStock(context, stockIgnored = []) {
+        if (!Array.isArray(stockIgnored) || stockIgnored.length === 0) return;
+        console.warn(
+            `[ProductVariantRepository] stock_quantity ignored for ${stockIgnored.length} existing ` +
+                `variant(s) in ${context}: ${stockIgnored.join(', ')} — ` +
+                `stock changes must go through stocktake/receipt/fulfillment events`
+        );
     }
 }

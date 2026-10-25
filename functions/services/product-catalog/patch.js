@@ -114,11 +114,20 @@ export async function executeProductCatalogPatch({
       try {
         const syncResult = await variantRepo.syncVariants(productId, nextBody.variants);
         didSyncVariants = true;
+        // R2（审查发现 2）：已有变体传入的 stock_quantity 被忽略——库存只能
+        // 经盘点/收货/履约等带台账的业务事件变更，目录编辑不再覆盖 on_hand
+        //（防御式调用：仓储 mock/替代实现可能未提供日志方法）
+        if (typeof variantRepo.warnIgnoredStock === 'function') {
+          variantRepo.warnIgnoredStock(`product patch ${productId}`, syncResult?.stockIgnored);
+        }
         variantSync = {
           created: syncResult?.createdCount ?? 0,
           updated: syncResult?.updatedCount ?? 0,
           archived: syncResult?.archivedCount ?? syncResult?.deletedCount ?? 0,
           reactivated: syncResult?.reactivatedCount ?? 0,
+          stockIgnoredCount: Array.isArray(syncResult?.stockIgnored)
+            ? syncResult.stockIgnored.length
+            : 0,
         };
       } catch (error) {
         if (isVariantSyncValidationError(error)) {

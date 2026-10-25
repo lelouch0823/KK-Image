@@ -72,10 +72,13 @@ app.post('/', requirePermission('files:write'), async (c) => {
     )
       .bind(orderId)
       .first();
-    if (order?.order_no) {
-      const { ensureOrderFolder } = await import('../../../../api/utils/folder-utils.js');
-      folderId = await ensureOrderFolder(env, order.order_no);
+    if (!order?.order_no) {
+      // C-R10（C-F12）：指定了订单就必须命中——静默落 root 会让"为订单上传
+      // 的交付文件"散落在根目录，事后无从归集（销售端同场景已返回错误）
+      throw new NotFoundError(MSG.ORDER.NOT_FOUND);
     }
+    const { ensureOrderFolder } = await import('../../../../api/utils/folder-utils.js');
+    folderId = await ensureOrderFolder(env, order.order_no);
   } else if (spaceId) {
     targetSpace = await env.DB.prepare(
       'SELECT name, parent_id, product_id FROM spaces WHERE id = ?'

@@ -239,6 +239,8 @@ export async function processOrderUpdate(options) {
       explicitLineMutation: updates?.lines !== undefined,
       productId: options.productId,
       variantId: options.variantId,
+      // R2（F2）：单行手工订单的单价快照（仅未绑定变体行，业务层强制）
+      unitPrice: options.unitPrice,
       salespersonId: options.salespersonIdUpdate,
       status: statusChanged ? updates.status : undefined,
       fileIds: filesChanged ? fileChange.newFileIds : undefined,

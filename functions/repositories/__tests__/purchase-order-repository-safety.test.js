@@ -472,8 +472,9 @@ describe('PurchaseOrderRepository safety guards', () => {
 
     expect(db.batch).toHaveBeenCalledTimes(1);
     expect(db.__batchCalls[0]).toHaveLength(2);
+    // R9：草稿守卫并入 DELETE 谓词
     expect(db.__batchCalls[0][0].sql).toContain(
-      'DELETE FROM purchase_order_items WHERE id = ? AND po_id = ?'
+      "AND EXISTS (SELECT 1 FROM purchase_orders po WHERE po.id = ? AND po.status = 'draft')"
     );
     expect(db.__batchCalls[0][1].sql).toContain(
       'UPDATE purchase_orders SET updated_at = ? WHERE id = ?'

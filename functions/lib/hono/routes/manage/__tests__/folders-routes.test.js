@@ -140,6 +140,53 @@ describe('manage folders routes', () => {
     mocks.scheduleCacheInvalidation.mockImplementation(() => {});
   });
 
+  it('clears share_token on revoke so re-enabling generates a fresh token (C-R5/F-7)', async () => {
+    // 撤销前文件夹已分享（持旧 token）
+    mocks.findById.mockResolvedValue({
+      id: 'folder-1',
+      name: 'Folder One',
+      is_system: 0,
+      parent_id: 'root',
+      share_token: 'legacy-token',
+      is_public: 1,
+    });
+    const app = createApp();
+
+    const res = await app.request(
+      'http://localhost/api/manage/folders/folder-1',
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublic: false, shareToken: null }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(200);
+    const updates = mocks.updateFolder.mock.calls[0][1];
+    // 旧 token 必须被清除——否则"再次开启分享"会重新激活旧 URL
+    expect(updates.share_token).toBeNull();
+    expect(updates.is_public).toBe(0);
+  });
+
+  it('rejects custom shareToken values (only null is accepted)', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/manage/folders/folder-1',
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublic: true, shareToken: 'attacker-chosen-token' }),
+      },
+      { DB: {} },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(400);
+    expect(mocks.updateFolder).not.toHaveBeenCalled();
+  });
+
   it('audits folder deletion with folder name', async () => {
     const app = createApp();
     const waitUntil = vi.fn();

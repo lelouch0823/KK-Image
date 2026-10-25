@@ -61,6 +61,8 @@ export async function executeProductCatalogBatchImport({
     updatedVariants: 0,
     archivedVariants: 0,
     reactivatedVariants: 0,
+    // R2（审查发现 2）：对已匹配的已有变体忽略导入库存列的数量
+    ignoredStockVariants: 0,
     failedProducts: 0,
     conflicts: 0,
   };

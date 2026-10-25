@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   folderFindTrash: vi.fn(),
   folderRestore: vi.fn(),
   folderFindById: vi.fn(),
+  folderGetAllFilesRecursive: vi.fn(async () => []),
   folderDeleteRecursive: vi.fn(),
   folderGetAllStorageKeysRecursive: vi.fn(),
   backupDelete: vi.fn(),
@@ -56,7 +57,7 @@ vi.mock('../../../../../repositories/FolderRepository.js', () => ({
     restore: mocks.folderRestore,
     findById: mocks.folderFindById,
     deleteRecursive: mocks.folderDeleteRecursive,
-    getAllStorageKeysRecursive: mocks.folderGetAllStorageKeysRecursive,
+    getAllFilesRecursive: mocks.folderGetAllFilesRecursive,
   })),
 }));
 
@@ -156,7 +157,8 @@ describe('manage ops support audit routes', () => {
     mocks.folderRestore.mockResolvedValue(undefined);
     mocks.folderFindById.mockResolvedValue({ id: 'folder-1' });
     mocks.folderDeleteRecursive.mockResolvedValue(undefined);
-    mocks.folderGetAllStorageKeysRecursive.mockResolvedValue([]);
+    mocks.folderGetAllFilesRecursive = mocks.folderGetAllFilesRecursive || vi.fn();
+    mocks.folderGetAllFilesRecursive.mockResolvedValue([]);
     mocks.performStreamingBackup.mockResolvedValue({
       filename: 'backup-1.zip',
       key: 'backup-1.zip',

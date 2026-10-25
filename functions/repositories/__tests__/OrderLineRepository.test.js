@@ -44,18 +44,21 @@ describe('OrderLineRepository', () => {
     expect(db.prepare.mock.calls[0][0]).toContain('INSERT INTO order_lines');
     // unit_price 占位（变体价格快照子查询）插在 variant_id 之后：索引 4 起整体后移
     expect(db.prepare.mock.calls[0][0]).toContain(
-      '(SELECT price FROM product_variants WHERE id = ?)'
+      'COALESCE(?, (SELECT price FROM product_variants WHERE id = ?))'
     );
     expect(bindArgs[0]).toBe('line-123');
     expect(bindArgs[1]).toBe('order-1');
-    expect(bindArgs[4]).toBe(null); // unit_price 快照：无 variant_id 时为 NULL
-    expect(bindArgs[5]).toBe('Radiant Shirt');
-    expect(bindArgs[6]).toBe('RS-01');
-    expect(bindArgs[7]).toBe(JSON.stringify({ color: 'red', size: 'M' }));
-    expect(bindArgs[8]).toBe('https://cdn.example/radiant');
-    expect(bindArgs[9]).toBe(5);
-    expect(bindArgs[15]).toBe('unprocured');
-    expect(bindArgs[16]).toBe(now);
+    // R2：COALESCE(手工 unitPrice, 变体售价)——手工行 unitPrice 为 NULL，
+    // 无 variant_id 时子查询参数也为 NULL，name 起整体后移至索引 6
+    expect(bindArgs[4]).toBe(null);
+    expect(bindArgs[5]).toBe(null);
+    expect(bindArgs[6]).toBe('Radiant Shirt');
+    expect(bindArgs[7]).toBe('RS-01');
+    expect(bindArgs[8]).toBe(JSON.stringify({ color: 'red', size: 'M' }));
+    expect(bindArgs[9]).toBe('https://cdn.example/radiant');
+    expect(bindArgs[10]).toBe(5);
+    expect(bindArgs[16]).toBe('unprocured');
     expect(bindArgs[17]).toBe(now);
+    expect(bindArgs[18]).toBe(now);
   });
 });

@@ -347,6 +347,13 @@ app.patch('/:id', zValidator('json', UpdateSalesOrderSchema), async (c) => {
   const { finalUpdates, normalizedVariantId, reason, fileIds, productId } =
     await service.prepareUpdateOrder(order, body);
 
+  // R2（F2）：手工单单价快照——updates.unitPrice → 行列 unit_price
+  //（绑定商品的单由 syncCompatibilityOrderLineSnapshot 400 拒绝）
+  const unitPrice =
+    finalUpdates && Object.prototype.hasOwnProperty.call(finalUpdates, 'unitPrice')
+      ? finalUpdates.unitPrice
+      : undefined;
+
   const updateResult = await processOrderUpdate({
     env,
     orderId,
@@ -357,6 +364,7 @@ app.patch('/:id', zValidator('json', UpdateSalesOrderSchema), async (c) => {
     fileIds,
     productId,
     variantId: normalizedVariantId,
+    unitPrice,
     currentProductId: order.productId,
     currentVariantId: order.variantId,
     allowedFields: service.getSalesEditableFields(),

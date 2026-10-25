@@ -29,14 +29,19 @@ export async function getBlobByHash(env, hash) {
  */
 export async function createBlob(env, hash, size, mimeType) {
   const timestamp = now();
-  await env.DB.prepare(
+  // C-R8（C-F9）：并发上传同内容时 INSERT 撞主键会让后到者 500——
+  // ON CONFLICT DO NOTHING 幂等化，由调用方按 inserted 布尔决定是否
+  // increment（新行的 ref_count=1 已含首个文件，冲突行需 increment 补本次）
+  const result = await env.DB.prepare(
     `
         INSERT INTO blobs (content_hash, size, mime_type, ref_count, created_at)
         VALUES (?, ?, ?, 1, ?)
+        ON CONFLICT(content_hash) DO NOTHING
     `
   )
     .bind(hash, size, mimeType, timestamp)
     .run();
+  return Number(result?.meta?.changes || 0) === 1;
 }
 
 /**

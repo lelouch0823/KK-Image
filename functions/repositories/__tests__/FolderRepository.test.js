@@ -212,22 +212,29 @@ describe('FolderRepository', () => {
     expect(value).toEqual(results);
   });
 
-  it('returns recursive storage keys only', async () => {
-    const statement = createStatement('storage-keys', {
+  it('returns recursive file rows for claim-based deletion (C-F1)', async () => {
+    const statement = createStatement('files-recursive', {
       allResult: {
-        results: [{ storage_key: 'a.jpg' }, { storage_key: 'b.jpg' }],
+        results: [
+          { id: 'f-1', content_hash: 'hash-a', storage_key: 'hash-a' },
+          { id: 'f-2', content_hash: null, storage_key: 'a.jpg' },
+        ],
       },
     });
     const db = { prepare: vi.fn(() => statement) };
     const repo = new FolderRepository(db);
 
-    const value = await repo.getAllStorageKeysRecursive('folder-1');
+    const value = await repo.getAllFilesRecursive('folder-1');
 
     const sql = db.prepare.mock.calls[0][0];
     expect(sql).toContain('WITH RECURSIVE descendant_folders');
-    expect(sql).toContain('SELECT storage_key FROM files');
+    // 文件行粒度（id + content_hash）——共享 CAS blob 必须走认领式删除
+    expect(sql).toContain('SELECT id, content_hash, storage_key');
     expect(statement.bind).toHaveBeenCalledWith('folder-1');
-    expect(value).toEqual(['a.jpg', 'b.jpg']);
+    expect(value).toEqual([
+      { id: 'f-1', content_hash: 'hash-a', storage_key: 'hash-a' },
+      { id: 'f-2', content_hash: null, storage_key: 'a.jpg' },
+    ]);
   });
 
   it('returns early when recursive delete finds no descendants', async () => {

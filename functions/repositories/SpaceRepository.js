@@ -82,15 +82,21 @@ export class SpaceRepository {
     _spaceFileCountJoinSQL() {
         return `
         LEFT JOIN (
-            SELECT space_id, COUNT(*) as file_count
-            FROM space_files
-            GROUP BY space_id
+            -- R3（C-F5）：文件计数排除已软删文件——与公开端 /space/[token] 口径
+            -- 一致，否则销售端列表计数虚高且与客户看到的列表不符
+            SELECT sf.space_id, COUNT(*) as file_count
+            FROM space_files sf
+            JOIN files f ON f.id = sf.file_id
+                 AND (f.is_deleted IS NULL OR f.is_deleted = 0)
+            GROUP BY sf.space_id
         ) sf_count ON sf_count.space_id = s.id
       `;
     }
     _spaceProductJoinsSQL() {
         return `
+        -- R3（C-F5）：封面文件已软删时不取（display_image_id 为 NULL，前端回退占位图）
         LEFT JOIN files f ON s.cover_file_id = f.id
+          AND (f.is_deleted IS NULL OR f.is_deleted = 0)
         LEFT JOIN products p ON s.product_id = p.id
         LEFT JOIN product_projection pp ON pp.product_id = p.id
         LEFT JOIN product_variants pv ON s.variant_id = pv.id AND pv.product_id = s.product_id
@@ -480,10 +486,12 @@ export class SpaceRepository {
         `).bind(spaceId, now, salespersonId).first();
         if (!space)
             return null;
+        // R3（C-F5）：销售端空间详情排除已软删文件——软删后公开分享链接已
+        // 不再返回该文件，销售端看到已删文件（且 /file/:id 会 404）属契约断裂
         const { results: files } = await this.db.prepare(`
             SELECT f.*, sf.section FROM files f
             JOIN space_files sf ON f.id = sf.file_id
-            WHERE sf.space_id = ?
+            WHERE sf.space_id = ? AND (f.is_deleted IS NULL OR f.is_deleted = 0)
             ORDER BY sf.section, sf.sort_order ASC, f.created_at DESC
         `).bind(spaceId).all();
         return { ...space, files };

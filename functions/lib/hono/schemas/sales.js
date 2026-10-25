@@ -29,6 +29,16 @@ export const CreateOrderSchema = z.object({
   remark: z.string().optional().default(''),
   deadline: z.string().optional().default(''),
   quantity: z.number().min(1, '数量至少为1').optional().default(1),
+  // R2（F2）：手工单（未绑定商品）的单价快照；绑定变体时业务层强制省略
+  unitPrice: z.coerce
+    .number()
+    .min(0)
+    .max(99999999)
+    .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6, {
+      message: '单价最多两位小数',
+    })
+    .nullable()
+    .optional(),
   fileIds: z.array(z.string()).optional().default([]),
   productId: z.string().nullable().optional(),
   variantId: z.string().nullable().optional(),
@@ -62,6 +72,16 @@ export const UpdateSalesOrderSchema = z
         remark: z.string().max(1000).optional(),
         deadline: z.string().optional(),
         quantity: z.number().int().positive().max(99999).optional(),
+        // R2（F2）：手工单单价快照（仅未绑定商品的单可改，业务层强制）
+        unitPrice: z.coerce
+          .number()
+          .min(0)
+          .max(99999999)
+          .refine((value) => Math.abs(value * 100 - Math.round(value * 100)) < 1e-6, {
+            message: '单价最多两位小数',
+          })
+          .nullable()
+          .optional(),
         image: z.string().optional(),
         image_url: z.string().optional(),
         // 允许 lines 通过验证，由 handler 检查并返回自定义错误

@@ -298,8 +298,16 @@ app.put(
     }
     if (data.shareExpiresAt !== undefined) updates.share_expires_at = data.shareExpiresAt;
 
-    // 自动生成分享令牌
-    if ((data.isPublic === true || data.shareExpiresAt !== undefined) && !folder.share_token) {
+    // C-R5（F-7）：撤销分享时清除令牌——share_token 保留会让"再次开启分享"
+    // 重新激活旧 URL，曾持有链接者无需新信息即恢复访问
+    if (data.shareToken === null) {
+      updates.share_token = null;
+    }
+
+    // 自动生成分享令牌（同请求撤销+重开时以清空后的有效值判断）
+    const effectiveShareToken =
+      updates.share_token !== undefined ? updates.share_token : folder.share_token;
+    if ((data.isPublic === true || data.shareExpiresAt !== undefined) && !effectiveShareToken) {
       updates.share_token = generateShareToken();
     }
 

@@ -174,11 +174,19 @@ export class GenericRestAdapter extends BaseErpAdapter {
     }
   }
 
-  async pushProduct(product) {
+  async pushProduct(product, { erpId = null } = {}) {
     const endpoints = this._entityEndpoints('product');
     const payload = this._mapProductToErp(product);
-    const data = await this._request('POST', endpoints.create, payload);
-    return { erpId: String(data.id || data.erp_id), erpCode: data.code || data.erp_code, data };
+    // 审查发现 7：已有 ERP 映射的实体走更新（PUT）而非重复创建——
+    // 否则每次全量同步都会在对端造出重复实体
+    const data = erpId
+      ? await this._request('PUT', `${endpoints.update}/${erpId}`, payload)
+      : await this._request('POST', endpoints.create, payload);
+    return {
+      erpId: String(data.id || data.erp_id || erpId || ''),
+      erpCode: data.code || data.erp_code,
+      data,
+    };
   }
 
   async pullProduct(erpId) {
@@ -186,11 +194,17 @@ export class GenericRestAdapter extends BaseErpAdapter {
     return this._request('GET', `${endpoints.get}/${erpId}`);
   }
 
-  async pushCustomer(customer) {
+  async pushCustomer(customer, { erpId = null } = {}) {
     const endpoints = this._entityEndpoints('customer');
     const payload = this._mapCustomerToErp(customer);
-    const data = await this._request('POST', endpoints.create, payload);
-    return { erpId: String(data.id || data.erp_id), erpCode: data.code || data.erp_code, data };
+    const data = erpId
+      ? await this._request('PUT', `${endpoints.update}/${erpId}`, payload)
+      : await this._request('POST', endpoints.create, payload);
+    return {
+      erpId: String(data.id || data.erp_id || erpId || ''),
+      erpCode: data.code || data.erp_code,
+      data,
+    };
   }
 
   async pullCustomer(erpId) {
@@ -198,16 +212,17 @@ export class GenericRestAdapter extends BaseErpAdapter {
     return this._request('GET', `${endpoints.get}/${erpId}`);
   }
 
-  async pushOrder(order) {
+  async pushOrder(order, { erpId = null } = {}) {
     const endpoints = this._entityEndpoints('order');
     const payload = this._mapOrderToErp(order);
-    const data = await this._request('POST', endpoints.create, payload);
-    return { erpId: String(data.id || data.erp_id), erpCode: data.code || data.erp_code, data };
-  }
-
-  async pullOrder(erpId) {
-    const endpoints = this._entityEndpoints('order');
-    return this._request('GET', `${endpoints.get}/${erpId}`);
+    const data = erpId
+      ? await this._request('PUT', `${endpoints.update}/${erpId}`, payload)
+      : await this._request('POST', endpoints.create, payload);
+    return {
+      erpId: String(data.id || data.erp_id || erpId || ''),
+      erpCode: data.code || data.erp_code,
+      data,
+    };
   }
 
   async listRemote(entityType, { since, limit = 50, page = 1 } = {}) {

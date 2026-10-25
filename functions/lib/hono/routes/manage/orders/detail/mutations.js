@@ -76,7 +76,7 @@ app.patch('/:id', zValidator('json', UpdateAdminOrderSchema), async (c) => {
     );
   }
 
-  const { updates: updatesFromBody, reason, fileIds, productId, variantId } = body;
+  const { updates: updatesFromBody, reason, fileIds, productId, variantId, unitPrice } = body;
   const forceStatusTransition = Boolean(body?.force);
   const updatesObj = updatesFromBody || body;
   const {
@@ -133,6 +133,7 @@ app.patch('/:id', zValidator('json', UpdateAdminOrderSchema), async (c) => {
   const hasVariantIdPayload = payloadVariantId !== undefined;
   const hasBindingMutation = hasProductIdPayload || hasVariantIdPayload;
   const hasQuantityMutation = updates.quantity !== undefined;
+  const hasUnitPricePayload = unitPrice !== undefined;
   const hasLineMutation = Boolean(normalizedLines);
   const effectiveProductId = hasProductIdPayload ? payloadProductId : order.productId;
   const hasExistingBinding = Boolean(order.productId && order.variantId);
@@ -162,6 +163,23 @@ app.patch('/:id', zValidator('json', UpdateAdminOrderSchema), async (c) => {
     throw new BadRequestError(
       'order lines can only be changed while order is pending, rejected, or void'
     );
+  }
+  if (
+    hasUnitPricePayload &&
+    !STRUCTURAL_EDITABLE_STATUSES.has(
+      String(order.status || '')
+        .trim()
+        .toLowerCase()
+    )
+  ) {
+    // R2（F2）：改价与结构编辑同门槛——confirmed 之后改价会让 B9 的
+    // "价格快照不追溯"承诺失效
+    throw new BadRequestError(
+      'unit price can only be changed while order is pending, rejected, or void'
+    );
+  }
+  if (hasUnitPricePayload && unitPrice !== null && hasExistingBinding) {
+    throw new BadRequestError('绑定变体的行价格以变体售价为准，请勿提交 unitPrice');
   }
   if (
     hasQuantityMutation &&
@@ -215,6 +233,12 @@ app.patch('/:id', zValidator('json', UpdateAdminOrderSchema), async (c) => {
     reason,
   });
 
+  // R2（F2）：手工行单价快照——并入 finalUpdates 使 current_data JSON 与
+  // 行列同步更新；单行订单经 syncCompatibilityOrderLineSnapshot 落 unit_price
+  if (hasUnitPricePayload) {
+    finalUpdates.unitPrice = unitPrice;
+  }
+
   const updateResult = await processOrderUpdate({
     env,
     orderId: id,
@@ -225,6 +249,7 @@ app.patch('/:id', zValidator('json', UpdateAdminOrderSchema), async (c) => {
     fileIds,
     productId: payloadProductId,
     variantId: normalizedVariantId,
+    unitPrice: hasUnitPricePayload ? unitPrice : undefined,
     currentProductId: order.productId,
     currentVariantId: order.variantId,
     currentSalespersonId: order.salespersonId,

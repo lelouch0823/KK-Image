@@ -314,7 +314,25 @@ export class PurchaseOrderService {
    * @param {string} poId
    */
   async allocateCosts(poId) {
-    return this.costAllocationService.allocateCosts(poId);
+    // 审查发现 6：分摊互斥——CostAllocationService 在 batch 外反解上一次
+    // 分摊额，两个并发 allocate 会双重反解使 MAC 成本下偏；资源锁
+    //（10 分钟 stale 接管自愈）保证同 PO 串行执行
+    const timestamp = Date.now();
+    const lockRecords = await acquireProcurementResourceLocks({
+      commandIdempotencyRepo: this.commandIdempotencyRepo,
+      resourceType: 'purchase_order_allocate',
+      resourceIds: [poId],
+      timestamp,
+      commandId: crypto.randomUUID(),
+    });
+    try {
+      return await this.costAllocationService.allocateCosts(poId);
+    } finally {
+      await releaseProcurementResourceLocks({
+        commandIdempotencyRepo: this.commandIdempotencyRepo,
+        lockRecords,
+      });
+    }
   }
 
   // ─── 智能采购建议 (委托 PurchaseSuggestionService) ────

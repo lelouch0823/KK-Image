@@ -92,8 +92,9 @@ export function buildVariantStockDeltaStatement(db, { variantId, quantityDelta, 
  * - available 恒重算为 MAX(on_hand - reserved, 0)（钳制展示语义）；
  * - 订单级预留（DemandService）是需求驱动的软锁定，允许 reserved > on_hand
  *   （预订/backorder 模式），因此本构建器不做 available 下限守卫；
- * - 行级硬预留（reserve 命令）必须使用 buildGuardedHoldUpsertStatement，
- *   由 WHERE 谓词拒绝超可用预留。
+ * - 行级预留（reserve 命令）不写本表（单一写入者模型，审查 B1）——其容量
+ *   仲裁由 OrderLineFulfillmentService.reserve 的 allocation INSERT..SELECT
+ *   汇总谓词完成（R6/F6）。
  *
  * @returns {D1PreparedStatement}
  */
@@ -158,42 +159,14 @@ export function buildBalanceReservedClampedReleaseStatement(db, {
 }
 
 /**
- * 行级硬预留 UPSERT（C-H2）。
- *
- * 与 buildBalanceDeltaUpsertStatement 的差别：冲突分支带
- * `on_hand - (reserved + ?) >= 0` 谓词——两个并发 reserve 都通过 batch 外的
- * 容量检查时，只有能让谓词成立的那一个会写入；谓词失败 changes()=0，
- * 紧随的 changes() 断言语句使整个 batch 失败回滚（409 冲突）。
- *
- * 首建分支（行不存在）仅接受非负基线：新变体没有库存，预留不落库，
- * 由调用方的容量预检（available=0）拒绝。
- *
- * @returns {Array<D1PreparedStatement>} [upsert, changesAssertion]
- */
-export function buildGuardedHoldUpsertStatement(db, { variantId, reservedDelta, timestamp }) {
-  if (reservedDelta <= 0) {
-    throw new Error('buildGuardedHoldUpsertStatement requires a positive reservedDelta');
-  }
-  return [
-    db
-      .prepare(
-        `INSERT INTO inventory_balances (variant_id, on_hand, reserved, available, updated_at)
-         VALUES (?, 0, ?, 0, ?)
-         ON CONFLICT(variant_id) DO UPDATE SET
-           reserved = inventory_balances.reserved + ?,
-           available = MAX(inventory_balances.on_hand - (inventory_balances.reserved + ?), 0),
-           updated_at = excluded.updated_at
-         WHERE inventory_balances.on_hand - (inventory_balances.reserved + ?) >= 0`
-      )
-      .bind(variantId, reservedDelta, timestamp, reservedDelta, reservedDelta, reservedDelta),
-    buildChangesAssertionStatement(db),
-  ];
-}
-
-/**
  * changes() 断言语句：前一条 UPDATE/UPSERT 未命中（changes()=0）时，
  * json_extract 解析非 JSON 字面量抛出 "malformed JSON" 错误，使 batch 回滚。
  * 由 runGuardedBatch 将该错误映射为 ConflictError。
+ *
+ * 注（F13 清理）：旧 buildGuardedHoldUpsertStatement（行级硬预留 UPSERT）
+ * 已删除——B1 单一写入者模型下行级命令不写 inventory_balances，行级预留
+ * 的容量仲裁由 OrderLineFulfillmentService.reserve 的 INSERT..SELECT 汇总
+ * 谓词在语句执行时点完成（R6/F6）。
  */
 export function buildChangesAssertionStatement(db) {
   return db.prepare(

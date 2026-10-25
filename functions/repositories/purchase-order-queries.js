@@ -252,10 +252,21 @@ export async function getPurchaseOrderStats({ db }) {
       COUNT(CASE WHEN status = 'shipping' THEN 1 END) AS shipping_count,
       COUNT(CASE WHEN status = 'arrived' THEN 1 END) AS arrived_count,
       COUNT(CASE WHEN status = 'completed' THEN 1 END) AS completed_count,
-      COALESCE((SELECT SUM(quantity) FROM purchase_order_items), 0) AS ordered_qty,
-      COALESCE((SELECT SUM(received_qty) FROM purchase_order_items), 0) AS received_qty,
-      COALESCE((SELECT SUM(cancelled_qty) FROM purchase_order_items), 0) AS cancelled_qty,
-      COALESCE((SELECT SUM(MAX(quantity - received_qty - cancelled_qty, 0)) FROM purchase_order_items), 0) AS outstanding_qty
+      -- R11（发现 12）：明细聚合 JOIN 采购单并排除 draft/cancelled——
+      -- 草稿/已取消单的量不属于采购统计口径（列表页 per-PO 聚合同口径）
+      COALESCE((SELECT SUM(poi.quantity) FROM purchase_order_items poi
+        JOIN purchase_orders po2 ON po2.id = poi.po_id
+        WHERE po2.status NOT IN ('draft', 'cancelled')), 0) AS ordered_qty,
+      COALESCE((SELECT SUM(poi.received_qty) FROM purchase_order_items poi
+        JOIN purchase_orders po2 ON po2.id = poi.po_id
+        WHERE po2.status NOT IN ('draft', 'cancelled')), 0) AS received_qty,
+      COALESCE((SELECT SUM(poi.cancelled_qty) FROM purchase_order_items poi
+        JOIN purchase_orders po2 ON po2.id = poi.po_id
+        WHERE po2.status NOT IN ('draft', 'cancelled')), 0) AS cancelled_qty,
+      COALESCE((SELECT SUM(MAX(poi.quantity - poi.received_qty - poi.cancelled_qty, 0))
+        FROM purchase_order_items poi
+        JOIN purchase_orders po2 ON po2.id = poi.po_id
+        WHERE po2.status NOT IN ('draft', 'cancelled')), 0) AS outstanding_qty
     FROM purchase_orders
   `
     )

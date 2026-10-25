@@ -51,3 +51,16 @@ export const CheckHashSchema = z
     original_hash: z.string().min(1, 'original_hash 不能为空').max(255),
   })
   .strict();
+
+/**
+ * R2（审查 F-2）：秒传服务端认领请求体。
+ * 服务端按 original_hash 定位同源文件、认领其 blob 引用，
+ * 并在目标目录创建 files 行——前端 check-hash 命中不再本地跳过。
+ */
+export const InstantUploadSchema = z
+  .object({
+    original_hash: z.string().min(1, 'original_hash 不能为空').max(255),
+    folderId: z.string().min(1).max(128).optional(),
+    name: z.string().min(1, '文件名不能为空').max(255),
+  })
+  .strict();

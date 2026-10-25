@@ -46,6 +46,7 @@ import {
 } from './mutation-helpers.js';
 
 // 重新导出生命周期操作，保持现有 API 不变
+//（F13 清理：旧 updateData 已删除——无生产调用方，功能由 updateComposite 覆盖）
 export { archive, restore, deleteWithRelations, markAsRead, setUnread } from './mutations-lifecycle.js';
 
 // 重新导出常量，保持现有 API 不变
@@ -199,106 +200,6 @@ function assertSingleBatchAtomicity(statementCount, operationLabel) {
 }
 
 /**
- * 更新订单数据
- * @param {D1Database} db
- * @param {string} id
- * @param {Object} newData
- * @param {'admin'|'sales'} actorType
- */
-export async function updateData(
-  db,
-  id,
-  newData,
-  actorType,
-  productId = undefined,
-  variantId = undefined
-) {
-  await assertOrderIsActiveForMutation(db, id);
-  const timestamp = now();
-  const updateField = getUnreadOtherField(actorType);
-  const deadlineDate = extractDeadlineDate(newData);
-  const { summaryName, summaryBrand, summarySku } = deriveOrderSummaryFields(newData);
-
-  const params = [
-    JSON.stringify(newData),
-    timestamp,
-    summaryName,
-    summaryBrand,
-    summarySku,
-    deadlineDate,
-  ];
-
-  const colsToUpdate = [
-    'current_data = ?',
-    `${updateField} = 1`,
-    'updated_at = ?',
-    'summary_name = ?',
-    'summary_brand = ?',
-    'summary_sku = ?',
-    'deadline_date = ?',
-  ];
-
-  // SOTA: Fix update quantity column from JSON
-  if (newData.quantity !== undefined) {
-    colsToUpdate.push('quantity = ?');
-    // 与行级路径保持一致：请求 JSON 中的数量可能是字符串（如 "5"），
-    // 直接绑定会让 SQLite 动态类型把文本存入 INTEGER 列
-    params.push(normalizeQuantity(newData.quantity));
-  }
-
-  if (productId !== undefined) {
-    colsToUpdate.push('product_id = ?');
-    params.push(productId);
-  }
-
-  if (variantId !== undefined) {
-    colsToUpdate.push('variant_id = ?');
-    params.push(variantId === '' ? null : variantId);
-  }
-
-  let query = `
-      UPDATE orders
-      SET ${colsToUpdate.join(', ')}
-    `;
-
-  query += ` WHERE id = ? AND archived_at IS NULL`;
-  params.push(id);
-
-  const updateStmt = db.prepare(query).bind(...params);
-
-  const payloadStmt = createOrderPayloadUpsertStatement(db, {
-    orderId: id,
-    originalData: JSON.stringify(newData),
-    currentData: JSON.stringify(newData),
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  });
-
-  const lineSnapshotStatement = await syncCompatibilityOrderLineSnapshot(db, {
-    orderId: id,
-    data: newData,
-    productId,
-    variantId,
-    quantity: newData?.quantity,
-    mainImageId: newData?.image || newData?.image_url || null,
-    timestamp,
-  });
-
-  // 原子执行：所有写操作在同一个 batch 中
-  try {
-    const results = await db.batch([
-      updateStmt,
-      buildPreviousWriteAssertionStatement(db),
-      payloadStmt,
-      lineSnapshotStatement,
-    ]);
-    return results[0];
-  } catch (error) {
-    normalizeGuardedOrderUpdateError(error);
-  }
-}
-
-/**
  * 原子更新订单核心字段（status/current_data/绑定/文件）
  * 所有核心写入在一个 batch 中执行，避免部分成功导致不一致。
  * @param {D1Database} db
@@ -320,6 +221,7 @@ export async function updateComposite(
     explicitLineMutation = undefined,
     productId = undefined,
     variantId = undefined,
+    unitPrice = undefined,
     salespersonId = undefined,
     status = undefined,
     fileIds = undefined,
@@ -490,16 +392,17 @@ export async function updateComposite(
     });
   } else {
     statements.push(
-      await syncCompatibilityOrderLineSnapshot(db, {
+      ...(await syncCompatibilityOrderLineSnapshot(db, {
         orderId: id,
         data: effectiveData,
         productId: effectiveProductId,
         variantId: effectiveVariantId,
         quantity: effectiveQuantity,
+        unitPrice,
         mainImageId: Array.isArray(fileIds) ? (fileIds.length > 0 ? fileIds[0] : null) : undefined,
         timestamp,
         prefetchedStates: orderLineStates,
-      })
+      }))
     );
   }
 
@@ -542,6 +445,24 @@ export async function updateComposite(
       const freshStates = await prefetchOrderLineStates(db, [id]);
       if (hasOrderLineFulfillmentProgress(getPrefetchedOrderLineState(freshStates, id))) {
         throw new ConflictError(ORDER_LINE_PROGRESS_REWRITE_CONFLICT_MESSAGE);
+      }
+    }
+    // R3（F3）：纯 quantity 路径的下限守卫失败——以权威行进度复核并按
+    // 履约冲突（409）报错，避免落进"订单已归档"的默认误导文案
+    if (isPreviousWriteAssertionError(error) && !hasExplicitLines && effectiveQuantity !== undefined) {
+      const freshStates = await prefetchOrderLineStates(db, [id]);
+      const freshLine = getPrefetchedOrderLineState(freshStates, id);
+      if (
+        Number(freshLine?.total_shipped_qty) > 0 ||
+        Number(freshLine?.total_reserved_qty) > 0 ||
+        Number(freshLine?.total_received_qty) > 0
+      ) {
+        const received = Number(freshLine?.total_received_qty) || 0;
+        const reserved = Number(freshLine?.total_reserved_qty) || 0;
+        const shipped = Number(freshLine?.total_shipped_qty) || 0;
+        throw new ConflictError(
+          `订单数量不能低于履约进度（已收货 ${received}/已预留 ${reserved}/已发货 ${shipped} 件），请先调整履约记录`
+        );
       }
     }
     normalizeGuardedOrderUpdateError(error);

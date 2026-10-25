@@ -16,7 +16,13 @@ import { OrderLineFulfillmentService } from './OrderLineFulfillmentService/index
 const TERMINAL_RELEASE_STATUSES = new Set(['void', 'rejected']);
 
 /**
- * 若 toStatus 为终态释放状态且与 fromStatus 不同，释放该订单全部行级预留。
+ * 若 toStatus 为终态释放状态，释放该订单全部行级预留。
+ *
+ * R5（F5）：不再以"fromStatus === toStatus"短路——终态转换提交后、行级
+ * 清算执行前若发生故障（D1 瞬时错误），客户端等值重试（void→void 合法）
+ * 会因旧短路永远跳过清算，而 releaseLine 又因兼容语句已清零拒绝，行级
+ * allocation 滞留 active。releaseAllLineReservations 幂等（无活跃
+ * allocation 时返回空、reserved 按 min 递减），等值重试安全。
  *
  * @returns {Promise<Array<{order_line_id: string, released: boolean}>>} 清算明细（非终态时为空数组）
  */
@@ -24,10 +30,7 @@ export async function maybeReleaseLineReservations(db, orderId, fromStatus, toSt
   const nextStatus = String(toStatus || '')
     .trim()
     .toLowerCase();
-  const previousStatus = String(fromStatus || '')
-    .trim()
-    .toLowerCase();
-  if (!TERMINAL_RELEASE_STATUSES.has(nextStatus) || previousStatus === nextStatus) {
+  if (!TERMINAL_RELEASE_STATUSES.has(nextStatus)) {
     return [];
   }
   const service = new OrderLineFulfillmentService(db);

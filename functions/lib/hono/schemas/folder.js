@@ -17,6 +17,11 @@ export const CreateFolderSchema = z.object({
  */
 export const UpdateFolderSchema = CreateFolderSchema.partial().extend({
   shareExpiresAt: z.number().optional().nullable(),
+  // C-R5（F-7）：仅接受 null（撤销分享时清除令牌）——下次重新开启分享会生成
+  // 新令牌，旧链接持有者无法凭旧 URL 恢复访问；非 null 值拒绝（令牌不可自定义）
+  shareToken: z
+    .literal(null, { errorMap: () => ({ message: '分享令牌不可自定义，只能撤销（null）' }) })
+    .optional(),
 });
 
 /**

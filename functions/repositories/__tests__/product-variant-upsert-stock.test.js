@@ -53,13 +53,13 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
     repo = new ProductVariantRepository(db);
   });
 
-  it('updates stock_quantity in upsert update clause for existing variants', async () => {
+  it('never overwrites stock for existing variants — catalog edits bypass inventory (R2/发现 2)', async () => {
     db = createMockDbWithExistingVariant([
       { id: 'v-1', variant_signature: '{"color":"black"}', status: 'active' },
     ]);
     repo = new ProductVariantRepository(db);
 
-    await repo.syncVariants('p-1', [
+    const result = await repo.syncVariants('p-1', [
       {
         id: 'v-1',
         sku: 'SKU-1',
@@ -75,13 +75,15 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
     const upsertStmt = statements.find((stmt) =>
       stmt.sql.includes('ON CONFLICT(id) DO UPDATE SET')
     );
-    expect(upsertStmt.sql).toContain('stock_quantity = excluded.stock_quantity');
+    // 目录同步不得绝对覆盖已有变体库存（并发出入库会被静默丢失且无台账）
+    expect(upsertStmt.sql).not.toContain('stock_quantity = excluded.stock_quantity');
+    // 已有变体不再触碰 inventory_balances——库存唯一入口是带台账的业务事件
     const balanceStmt = statements.find((stmt) =>
       stmt.sql.includes('INSERT INTO inventory_balances')
     );
-    expect(balanceStmt).toBeDefined();
-    expect(balanceStmt.params).toContain('v-1');
-    expect(balanceStmt.params).toContain(5);
+    expect(balanceStmt).toBeUndefined();
+    // 传入的 stock_quantity 被记录为 ignored 警告
+    expect(result.stockIgnored).toEqual(['v-1']);
   });
 
   it('preserves existing stock bindings when an existing variant omits stock_quantity', async () => {
@@ -111,12 +113,14 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
 
     const statements = db.batch.mock.calls[0][0];
     const upsertStmt = statements.find((stmt) => stmt.sql.includes('INSERT INTO product_variants'));
+    // R2：已有变体不改库存——balances 语句不存在；ON CONFLICT 分支不含
+    // stock_quantity 更新（INSERT VALUES 携带旧值仅在首建行时生效，无害）
     const balanceStmt = statements.find((stmt) =>
       stmt.sql.includes('INSERT INTO inventory_balances')
     );
-    expect(upsertStmt.params).toContain(12);
-    expect(balanceStmt.params).toContain(12);
-    expect(upsertStmt.params).not.toContain(0);
+    expect(balanceStmt).toBeUndefined();
+    const conflictClause = upsertStmt.sql.slice(upsertStmt.sql.indexOf('ON CONFLICT'));
+    expect(conflictClause).not.toContain('stock_quantity = excluded.stock_quantity');
   });
 
   it('keeps stock_quantity on insert bindings for new variants', async () => {
@@ -250,10 +254,17 @@ describe('ProductVariantRepository syncVariants stock upsert behavior', () => {
       }))
     );
 
-    expect(db.batch).toHaveBeenCalledTimes(2);
+    // R2：新变体建账追加 ledger/events 初始行（4 语句/变体），204 条按
+    // D1 上限 100 拆为 3 个 batch
+    expect(db.batch).toHaveBeenCalledTimes(3);
     expect(Math.max(...db.batchCalls.map((statements) => statements.length))).toBeLessThanOrEqual(
       100
     );
+    // 初始建账的台账语句在位
+    const ledgerStmts = db.batchCalls
+      .flat()
+      .filter((stmt) => stmt.sql.includes("INSERT INTO inventory_ledger"));
+    expect(ledgerStmts.length).toBe(51);
   });
 
   it('chunks large syncVariants writes and avoids oversized archive bindings', async () => {

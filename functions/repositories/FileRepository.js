@@ -54,7 +54,7 @@ export class FileRepository {
   /**
    * 递归收集文件夹（含全部子文件夹）内的文件 ID（F1：空间"按文件夹添加"）。
    *
-   * 与 FolderRepository.getAllStorageKeysRecursive 同构的递归 CTE，但返回
+   * 与 FolderRepository.getAllFilesRecursive 同构的递归 CTE，但返回
    * 文件 ID 而非存储键。folderIds 分块查询以遵守 D1 绑定参数上限，
    * 单次收集上限 500 个文件防御异常目录树。
    * @param {string[]} folderIds

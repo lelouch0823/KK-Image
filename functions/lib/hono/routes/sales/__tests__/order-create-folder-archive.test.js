@@ -100,7 +100,14 @@ describe('sales order create route', () => {
         DB: {
           prepare: () => ({
             bind: () => ({
-              all: async () => ({ results: [] }),
+              // C-R6：archiveFiles 分拣查询——两个文件都在暂存区（root），
+              // 全部可搬移
+              all: async () => ({
+                results: [
+                  { id: 'file-1', folder_id: 'root' },
+                  { id: 'file-2', folder_id: null },
+                ],
+              }),
               first: async () => null,
               run: async () => ({ meta: { changes: 1 } }),
             }),
@@ -126,5 +133,41 @@ describe('sales order create route', () => {
       expect.anything(),
       expect.objectContaining({ action: 'sales.order.create', domain: 'sales-orders' })
     );
+  });
+
+  it('keeps files with existing folder ownership in place (C-R6/C-F4)', async () => {
+    const app = createApp();
+    const res = await app.request(
+      'http://localhost/api/sales/token-1/orders',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'Sample Product',
+          quantity: 1,
+          fileIds: ['file-owned'],
+        }),
+      },
+      {
+        DB: {
+          prepare: () => ({
+            bind: () => ({
+              // file-owned 属于商品目录（非暂存区）——不得被 MOVE 进订单目录
+              all: async () => ({ results: [{ id: 'file-owned', folder_id: 'folder-product-1' }] }),
+              first: async () => null,
+              run: async () => ({ meta: { changes: 1 } }),
+            }),
+            all: async () => ({ results: [] }),
+            first: async () => null,
+            run: async () => ({ meta: { changes: 1 } }),
+          }),
+          batch: async () => [],
+        },
+      },
+      { waitUntil: vi.fn() }
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.moveFilesToFolder).not.toHaveBeenCalled();
   });
 });

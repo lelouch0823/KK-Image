@@ -260,4 +260,62 @@ describe('/file access control', () => {
     expect(response.headers.get('Cache-Control')).not.toContain('public');
     expect(globalThis.caches.default.put).not.toHaveBeenCalled();
   });
+
+  // R1（审查 F-3）：文件夹软删（回收站）后，已签发的 gallery access 令牌
+  // 必须在复检阶段被拒绝——SQL 必须携带 is_deleted = 0 过滤
+  it('rejects gallery signed access once the folder is soft-deleted', async () => {
+    const access = await generateScopedAccessToken(
+      {
+        sub: 'gallery-token',
+        type: 'public_file_access',
+        shareType: 'gallery',
+        shareToken: 'gallery-token',
+      },
+      { JWT_SECRET: 'jwt-secret' },
+      300
+    );
+
+    const seenSql = [];
+    const prepare = vi.fn((sql) => {
+      seenSql.push(sql);
+      if (sql.includes('FROM files')) {
+        return {
+          bind: vi.fn(() => ({
+            first: vi.fn(async () => ({
+              id: 'file-1',
+              folder_id: 'folder-1',
+              storage_key: 'hero-key',
+              mime_type: 'image/jpeg',
+              is_deleted: 0,
+              created_by: 'sales-1',
+            })),
+          })),
+        };
+      }
+      if (sql.includes('FROM folders')) {
+        return {
+          bind: vi.fn(() => ({
+            first: vi.fn(async () => null),
+          })),
+        };
+      }
+      throw new Error(`Unexpected SQL: ${sql}`);
+    });
+
+    const response = await onRequest({
+      request: new Request(`http://localhost/file/file-1?access=${encodeURIComponent(access)}`),
+      params: { id: 'file-1' },
+      env: {
+        JWT_SECRET: 'jwt-secret',
+        DB: { prepare },
+        R2_BUCKET: { get: vi.fn(async () => createObject()) },
+      },
+      waitUntil: vi.fn(),
+    });
+
+    expect(response.status).toBe(401);
+    const shareSql = seenSql.find((sql) => sql.includes('FROM folders'));
+    expect(shareSql).toContain('is_deleted = 0');
+    expect(shareSql).toContain('is_public = 1');
+  });
 });

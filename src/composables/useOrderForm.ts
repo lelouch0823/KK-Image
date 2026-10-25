@@ -45,6 +45,8 @@ interface OrderLine {
   variantId: string | null;
   boundProduct: unknown;
   boundProductVariant: unknown;
+  // R2（F2）：手工行（未绑定变体）单价快照；绑定变体的行必须为空
+  unitPrice: number | null;
   [key: string]: unknown;
 }
 
@@ -125,6 +127,7 @@ export function createEmptyOrderLine(overrides: OrderLineOverrides = {}): OrderL
     variantId: null,
     boundProduct: null,
     boundProductVariant: null,
+    unitPrice: null,
     ...restOverrides,
   } as OrderLine;
 }
@@ -144,7 +147,16 @@ function normalizeOrderLine(line: Record<string, unknown> = {}, fallback: Record
     variantId: (line.variantId as string) ?? (fallback.variantId as string) ?? null,
     boundProduct: line.boundProduct ?? fallback.boundProduct ?? null,
     boundProductVariant: line.boundProductVariant ?? fallback.boundProductVariant ?? null,
+    // R2（F2）：手工行单价（绑定变体的行置空，价格以变体售价为准）
+    unitPrice: normalizeLineUnitPrice(line.unitPrice ?? line.unit_price),
   });
+}
+
+function normalizeLineUnitPrice(value: unknown): number | null {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) return null;
+  return Math.round(parsed * 100) / 100;
 }
 
 function isMeaningfulLine(line: OrderLine = createEmptyOrderLine()): boolean {
@@ -396,6 +408,8 @@ export function useOrderForm(options: OrderFormOptions = {}) {
       quantity: line.quantity,
       productId: line.productId,
       variantId: line.variantId,
+      // R2（F2）：手工行单价快照（绑定变体的行不携带）
+      unitPrice: line.variantId ? null : line.unitPrice,
     }));
 
     const rolledUpQuantity =
@@ -420,6 +434,12 @@ export function useOrderForm(options: OrderFormOptions = {}) {
       payload.material = primaryLine.material;
       payload.productId = payloadLines.length === 1 ? primaryLine.productId : null;
       payload.variantId = payloadLines.length === 1 ? primaryLine.variantId : null;
+      // R2（F2）：销售端单行手工单的单价快照提升到顶层（lines 载荷被
+      // 销售端 schema 拒绝）；绑定变体时置空，价格以变体售价为准
+      payload.unitPrice =
+        payloadLines.length === 1 && !primaryLine.variantId
+          ? primaryLine.unitPrice ?? null
+          : null;
       payload.lines = payloadLines;
     }
 
