@@ -152,7 +152,9 @@ export function useProductForm({ editMode, initialData, modelValue = null, emit 
   const incompleteVariantsBannerMessage: ComputedRef<string> = computed(() =>
     t(
       'product.form.incomplete_variants_banner',
-      `There are ${incompleteVariantCount.value} legacy variants that no longer match the current specs. Remove/archive them before saving.`
+      {
+        count: incompleteVariantCount.value,
+      }
     )
   );
 

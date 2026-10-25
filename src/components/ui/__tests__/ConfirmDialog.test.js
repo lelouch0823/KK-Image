@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { defineComponent, nextTick } from 'vue';
+import { computed, defineComponent, nextTick } from 'vue';
 import ConfirmDialog from '../ConfirmDialog.vue';
 
 const openModals = [];
@@ -15,7 +15,7 @@ vi.mock('@/composables/useI18n', () => ({
 
 vi.mock('@/composables/useModalStack', () => ({
   useModalStack: () => ({
-    generateModalId: () => `confirm-${openModals.length + 1}`,
+    generateModalId: () => `modal-${openModals.length + 1}-${Math.random()}`,
     register: vi.fn((id) => {
       stackSpies.register(id);
       if (!openModals.includes(id)) openModals.push(id);
@@ -27,6 +27,8 @@ vi.mock('@/composables/useModalStack', () => ({
     }),
     getZIndex: vi.fn((id) => 1000 + Math.max(openModals.indexOf(id), 0) * 10),
     isTopModal: vi.fn((id) => openModals.at(-1) === id),
+    shouldShowBlur: vi.fn((id) => openModals.at(-1) === id),
+    hasOpenModals: computed(() => openModals.length > 0),
   }),
 }));
 
@@ -102,7 +104,8 @@ describe('ConfirmDialog', () => {
     expect(wrapper.emitted('update:modelValue')?.[0]).toEqual([false]);
 
     await wrapper.setProps({ modelValue: true });
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await nextTick();
 
     expect(wrapper.emitted('cancel')).toHaveLength(2);
   });
@@ -115,7 +118,8 @@ describe('ConfirmDialog', () => {
       loading: true,
     });
 
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    await nextTick();
     expect(wrapper.emitted('cancel')).toBeUndefined();
 
     const buttons = wrapper.findAll('button');
@@ -126,6 +130,20 @@ describe('ConfirmDialog', () => {
     await input.setValue('DELETE');
 
     expect(wrapper.findAll('button').at(-1)?.attributes('disabled')).toBeUndefined();
+  });
+
+  it('does not close on Escape already consumed by an inner overlay (defaultPrevented)', async () => {
+    const wrapper = mountDialog();
+
+    document.dispatchEvent(
+      new KeyboardEvent('keydown', { key: 'Escape', cancelable: true })
+    );
+    const event = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
+    event.preventDefault();
+    document.dispatchEvent(event);
+    await nextTick();
+
+    expect(wrapper.emitted('cancel')).toHaveLength(1);
   });
 
   it('emits confirm with the input value and uses type-specific button variants', async () => {
@@ -155,5 +173,13 @@ describe('ConfirmDialog', () => {
   it('falls back to primary variants for unknown types', () => {
     const wrapper = mountDialog({ type: 'custom-tone' });
     expect(wrapper.findAll('button').at(-1)?.attributes('data-variant')).toBe('primary');
+  });
+
+  it('exposes dialog semantics for assistive technology', () => {
+    const wrapper = mountDialog();
+    const dialog = wrapper.find('[role="dialog"]');
+    expect(dialog.exists()).toBe(true);
+    expect(dialog.attributes('aria-modal')).toBe('true');
+    expect(dialog.attributes('aria-labelledby')).toBeDefined();
   });
 });

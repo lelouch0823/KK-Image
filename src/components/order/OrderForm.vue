@@ -98,7 +98,7 @@
               :placeholder="t('order.form.productNamePlaceholder')"
               :label="t('order.form.recentInputs')"
               :filter-mode="false"
-              input-class="input h-11"
+              input-class="h-11"
               :disabled="isDisabled('name')"
             />
           </div>
@@ -114,7 +114,7 @@
                 :placeholder="t('order.form.brandPlaceholder')"
                 :label="t('order.form.recentInputs')"
                 :filter-mode="false"
-                input-class="input h-11"
+                input-class="h-11"
                 :disabled="isDisabled('brand')"
               />
             </div>
@@ -128,7 +128,7 @@
                 :placeholder="t('order.form.seriesPlaceholder')"
                 :label="t('order.form.recentInputs')"
                 :filter-mode="false"
-                input-class="input h-11"
+                input-class="h-11"
                 :disabled="isDisabled('series')"
               />
             </div>
@@ -226,7 +226,7 @@
                   :placeholder="t('order.form.colorPlaceholder')"
                   :label="t('order.form.recentInputs')"
                   :filter-mode="false"
-                  input-class="input h-11"
+                  input-class="h-11"
                 />
               </div>
               <div>
@@ -239,7 +239,7 @@
                   :placeholder="t('order.form.materialPlaceholder')"
                   :label="t('order.form.recentInputs')"
                   :filter-mode="false"
-                  input-class="input h-11"
+                  input-class="h-11"
                 />
               </div>
             </div>

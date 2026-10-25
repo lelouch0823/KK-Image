@@ -1,7 +1,7 @@
 <template>
   <Teleport to="body">
     <div
-      class="pointer-events-none fixed top-4 right-4 z-[1000] flex flex-col gap-2"
+      class="pointer-events-none fixed top-4 right-4 z-[10000] flex flex-col gap-2"
       aria-live="polite"
       aria-atomic="false"
     >

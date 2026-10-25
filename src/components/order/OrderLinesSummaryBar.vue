@@ -13,7 +13,7 @@
         <p class="text-xs text-(--text-secondary)">
           {{
             summary.pendingLineCount > 0
-              ? t('order.form.multilineSummaryPending', `还有 ${summary.pendingLineCount} 行待完善`)
+              ? t('order.form.multilineSummaryPending', { count: summary.pendingLineCount })
               : t('order.form.multilineSummaryReady', '当前所有明细均可提交')
           }}
         </p>

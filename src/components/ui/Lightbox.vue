@@ -78,7 +78,7 @@
               :href="currentFile.url"
               download
               class="flex items-center gap-2 rounded-full bg-(--bg-card)/15 px-4 py-2 text-sm font-medium text-(--text-inverse) backdrop-blur-md transition-colors hover:bg-(--bg-card)/25 focus-visible:outline-none"
-              aria-label="Download file"
+              :aria-label="t('gallery.download')"
             >
               <AppIcon name="arrow-down-tray" class="size-4" />
               <span class="hidden sm:inline">{{ t('gallery.download') }}</span>
@@ -286,6 +286,10 @@ const handleKeydown = (e) => {
 
   switch (e.key) {
     case 'Escape':
+      // 灯箱已注册进弹窗栈（打开时为栈顶），此处消费按键并阻断冒泡，
+      // 避免下层的 Modal / 命令面板等键盘监听重复响应
+      e.preventDefault();
+      e.stopPropagation();
       emit('close');
       break;
     case 'ArrowLeft':

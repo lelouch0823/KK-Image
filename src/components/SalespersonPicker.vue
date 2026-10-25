@@ -18,6 +18,7 @@
           variant="ghost"
           size="sm"
           class="text-primary/60 ml-0.5 !h-5 !w-5 rounded-full !px-0 hover:bg-primary/20 hover:text-primary"
+          :aria-label="t('common.remove', { name: sp.name })"
           @click.stop="remove(sp.id)"
         >
           <template #icon-left>

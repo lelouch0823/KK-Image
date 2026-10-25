@@ -41,6 +41,8 @@
           <button
             v-if="!isMinimized"
             class="rounded-lg p-1.5 text-(--text-muted) transition-colors hover:bg-(--bg-hover) hover:text-(--text-main)"
+            :title="t('upload.minimize')"
+            :aria-label="t('upload.minimize')"
             @click.stop="toggleMinimize"
           >
             <AppIcon name="chevron-down" class="size-5" />
@@ -58,6 +60,7 @@
             v-if="!isMinimized && failedCount > 0"
             class="rounded-lg p-1.5 text-(--text-muted) transition-colors hover:bg-(--color-warning-bg) hover:text-(--color-warning-text)"
             :title="t('common.retryAllFailed')"
+            :aria-label="t('common.retryAllFailed')"
             @click.stop="retryAllFailed"
           >
             <AppIcon name="arrow-path" class="size-5" />
@@ -67,6 +70,7 @@
             v-if="!isMinimized && !isUploading"
             class="rounded-lg p-1.5 text-(--text-muted) transition-colors hover:bg-(--color-info-bg) hover:text-(--color-info-text)"
             :title="t('upload.clearCompleted')"
+            :aria-label="t('upload.clearCompleted')"
             @click.stop="clearCompleted"
           >
             <AppIcon name="check" class="size-5" />
@@ -75,6 +79,7 @@
             v-if="!isMinimized"
             class="rounded-lg p-1.5 text-(--text-muted) transition-colors hover:bg-(--color-danger-bg) hover:text-(--color-danger-text)"
             :title="t('common.clearAll')"
+            :aria-label="t('common.clearAll')"
             @click.stop="clearAll"
           >
             <AppIcon name="x-mark" class="size-5" />
@@ -134,7 +139,7 @@
               </button>
               <button
                 v-else-if="item.status !== 'success'"
-                class="absolute top-1/2 right-2 -translate-y-1/2 rounded-full border border-(--border-color) bg-(--bg-card) p-1.5 text-(--text-muted) opacity-0 shadow-sm transition-all group-hover:opacity-100 hover:bg-(--color-danger-bg) hover:text-(--color-danger-text)"
+                class="absolute top-1/2 right-2 -translate-y-1/2 rounded-full border border-(--border-color) bg-(--bg-card) p-1.5 text-(--text-muted) opacity-0 shadow-sm transition-all group-hover:opacity-100 focus-visible:opacity-100 max-lg:opacity-100 hover:bg-(--color-danger-bg) hover:text-(--color-danger-text)"
                 @click="removeFile(item.id)"
               >
                 <AppIcon name="x-mark" class="size-4" />

@@ -1,5 +1,10 @@
 // Statistics
 export default {
+
+  businessOverview: 'Business Overview',
+  pendingOrders: 'Pending Orders',
+  fulfilledOrders: 'Fulfilled Orders',
+  activeSalespersons: 'Active Salespersons',
   analyzing: 'Analyzing data...',
   loadFailed: 'Failed to load data',
   retry: 'Reload',

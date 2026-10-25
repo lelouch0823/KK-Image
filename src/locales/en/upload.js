@@ -18,4 +18,5 @@ export default {
   failed: 'Upload failed: {message}',
   compressFailed: 'Compression failed: {message}',
   compressionSaved: 'Compressed {percent}%',
+  minimize: 'Minimize upload panel',
 };

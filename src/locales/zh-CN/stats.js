@@ -1,5 +1,10 @@
 // 统计分析
 export default {
+
+  businessOverview: '业务总览',
+  pendingOrders: '待处理订单',
+  fulfilledOrders: '已履约订单',
+  activeSalespersons: '活跃销售',
   analyzing: '正在分析数据...',
   loadFailed: '数据加载失败',
   retry: '重新加载',

@@ -9,6 +9,7 @@
         v-bind="$attrs"
         :placeholder="placeholder"
         :disabled="disabled"
+        class="block h-10 w-full rounded-lg border border-(--border-color) bg-(--bg-card) px-3 text-sm text-(--text-main) placeholder-(--text-muted) transition-all duration-150 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         :class="inputClass"
         role="combobox"
         aria-autocomplete="list"
@@ -192,7 +193,12 @@ const handleInput = () => {
 // 处理键盘导航
 const handleKeydown = (e) => {
   if (!showDropdown.value || displaySuggestions.value.length === 0) {
-    if (e.key === 'Escape') showDropdown.value = false;
+    if (e.key === 'Escape' && showDropdown.value) {
+      // 仅当下拉确实打开时消费按键；阻止冒泡避免连带关闭底层 Modal
+      e.preventDefault();
+      e.stopPropagation();
+      showDropdown.value = false;
+    }
     return;
   }
 
@@ -215,6 +221,8 @@ const handleKeydown = (e) => {
       }
       break;
     case 'Escape':
+      e.preventDefault();
+      e.stopPropagation();
       showDropdown.value = false;
       break;
   }

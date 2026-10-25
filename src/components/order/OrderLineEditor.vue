@@ -10,7 +10,7 @@
         <div class="space-y-1">
           <div class="flex items-center gap-2">
             <div class="text-sm font-semibold text-(--text-main)">
-              {{ t('order.form.lineTitle', `商品明细 ${index + 1}`) }}
+              {{ t('order.form.lineTitle', { index: index + 1 }) }}
             </div>
             <span class="rounded-full px-2 py-0.5 text-xs font-medium" :class="statusBadgeClass">
               {{ statusLabel }}

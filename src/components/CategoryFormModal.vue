@@ -14,6 +14,7 @@
         <AppInput
           v-model="form.name"
           :placeholder="t('product.categoryTree.name_placeholder')"
+          :error="nameError"
           autofocus
         />
       </div>
@@ -77,12 +78,21 @@ const emit = defineEmits(['update:modelValue', 'submit']);
 
 const submitting = ref(false);
 const isEditing = computed(() => !!props.category);
+const nameError = ref('');
 
 const form = reactive({
   name: '',
   parent_id: null,
   sort_order: 0,
 });
+
+// 输入后清除校验错误
+watch(
+  () => form.name,
+  () => {
+    if (nameError.value && form.name.trim()) nameError.value = '';
+  }
+);
 
 // 当 category 变化时，填充表单
 watch(
@@ -102,7 +112,12 @@ watch(
 );
 
 const handleSubmit = async () => {
-  if (!form.name.trim()) return;
+  if (!form.name.trim()) {
+    // 提交失败要有可见反馈，不能静默返回
+    nameError.value = t('common.required', { path: t('product.form.name') });
+    return;
+  }
+  nameError.value = '';
   submitting.value = true;
   try {
     emit('submit', {

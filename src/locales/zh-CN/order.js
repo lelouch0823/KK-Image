@@ -1,5 +1,8 @@
 // 订单模块 (销售端 + 管理端)
 export default {
+
+  productImage: '商品图片',
+  files: '订单文件',
   // 通用
   title: '预定管理',
   orderNo: '订单编号',
@@ -48,6 +51,37 @@ export default {
 
   // 表单字段
   form: {
+    multilineEnabled: '当前为多商品订单模式',
+    singleLineEnabled: '当前为单商品订单模式',
+    multilineHint: '保存时会按明细重写订单行与总数量。',
+    singleLineHint: '需要多个商品时可切换到多行明细模式。',
+    backToSingleLine: '切回单行',
+    enableMultiline: '启用多行',
+    pleaseUploadImage: '请至少上传一张商品图片',
+    pendingLines: '还有 {count} 行待完善',
+    pleaseEnterName: '请填写商品名称',
+    pleaseSelectSalesperson: '请选择销售人员',
+    pleaseComplete: '请完善必填信息',
+    lineTitle: '商品明细 {index}',
+    copyLine: '复制上一行',
+    addNextLine: '新增下一行',
+    blankLine: '空白行',
+    linePending: '请先补齐商品信息',
+    lineEmpty: '先绑定商品，或填写一条商品名称',
+    multilineSummaryTitle: '多行建单摘要',
+    multilineSummaryPending: '还有 {count} 行待完善',
+    multilineSummaryReady: '当前所有明细均可提交',
+    summaryLines: '明细行数',
+    summaryQuantity: '总件数',
+    summaryImages: '图片数量',
+    summaryPending: '待完善',
+    multilineTitle: '订单明细',
+    multilineSubtitle: '每条商品独立绑定，提交前自动汇总总件数',
+    addLine: '新增明细',
+    bound: '已绑定',
+    manualEntry: '手工填写',
+    pending: '待完善',
+    pendingMessage: '请填写商品名称或绑定商品',
     productName: '商品名称',
     productNamePlaceholder: '如：实木餐桌',
     size: '规格尺寸',
@@ -366,6 +400,7 @@ export default {
 
   // 应收账款
   receivables: {
+    orderCount: '{count} 单',
     title: '应收账款',
     totalOutstanding: '应收总额',
     totalPaid: '已收总额',
@@ -453,4 +488,15 @@ export default {
   },
   // F5：列表达到上限后最早条目被移出时的提示
   listTruncatedHint: '已达列表显示上限，更早的订单请使用搜索定位',
+  print: {
+    title: '订单打印',
+    orderList: '订单列表',
+    printTime: '打印时间',
+    orderNo: '订单编号',
+    productName: '商品名称',
+    status: '状态',
+    quantity: '数量',
+    salesperson: '销售员',
+    createdAt: '创建时间',
+  },
 };

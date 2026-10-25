@@ -1,5 +1,9 @@
 // Goods Overview Translations
 export default {
+
+  selectVariants: 'Please select variants',
+  onlyShortageVariants: 'Purchase orders can only be created for variants with shortages',
+  createFailed: 'Creation failed',
   subtitle: 'Analyze order demand and supply chain status from confirmed orders',
   pipeline: {
     confirmed: 'To Order',
@@ -57,6 +61,8 @@ export default {
     deselectAll: 'Deselect All',
   },
   toast: {
+    selectProductWithVariant: 'Please select a product with variants',
+    poCreateFailed: 'Failed to create purchase order',
     poCreated: 'Purchase order created from selected items',
   },
 };

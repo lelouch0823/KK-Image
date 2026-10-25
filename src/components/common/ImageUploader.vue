@@ -27,10 +27,11 @@
         @remove="removeFile(index)"
       />
 
-      <!-- 上传按钮 -->
+      <!-- 上传按钮（处理中保持占位但禁用，避免布局跳动） -->
       <UploadButton
-        v-if="!readonly && modelValue.length < maxFiles && !isProcessing"
+        v-if="!readonly && modelValue.length < maxFiles"
         :text="uploadText"
+        :disabled="isProcessing"
         @select="handleFileSelect"
       />
 
@@ -172,12 +173,15 @@ const handleFileSelect = async (e) => {
 
   const newFiles = [...props.modelValue];
   let instantCount = 0;
+  const totalToProcess = Math.min(files.length, Math.max(0, props.maxFiles - newFiles.length));
 
-  for (const file of files) {
+  for (const [fileIndex, file] of files.entries()) {
     if (newFiles.length >= props.maxFiles) break;
 
     isProcessing.value = true;
-    processingStatus.value = t('upload.checkingDuplicate');
+    const progressPrefix =
+      totalToProcess > 1 ? `${fileIndex + 1}/${totalToProcess} · ` : '';
+    processingStatus.value = `${progressPrefix}${t('upload.checkingDuplicate')}`;
 
     // ⚡ SOTA: 先计算原始文件 hash 并预检查
     let originalHash;
@@ -200,6 +204,8 @@ const handleFileSelect = async (e) => {
             instantUpload: true,
           });
           addToast({ message: t('upload.instantUploadSuccess'), type: 'success' });
+          // 逐文件同步，秒传结果立即可见，不必等全部处理完
+          emit('update:modelValue', [...newFiles]);
           continue; // 跳过压缩和上传
         }
       }
@@ -208,14 +214,14 @@ const handleFileSelect = async (e) => {
     }
 
     // 预检查未命中，继续压缩流程
-    processingStatus.value = t('upload.compressing');
+    processingStatus.value = `${progressPrefix}${t('upload.compressing')}`;
 
     let compressedFile, hash;
 
     // 压缩步骤
     try {
       const result = await compressImage(file, (progress) => {
-        processingStatus.value = `${t('upload.compressing')} ${progress}%`;
+        processingStatus.value = `${progressPrefix}${t('upload.compressing')} ${progress}%`;
       });
       compressedFile = result.file;
       hash = result.hash;
@@ -226,8 +232,6 @@ const handleFileSelect = async (e) => {
         message: t('upload.compressFailed', { message: compressErr.message }),
         type: 'error',
       });
-      isProcessing.value = false;
-      processingStatus.value = '';
       continue;
     }
 
@@ -244,7 +248,7 @@ const handleFileSelect = async (e) => {
           isLocal: true,
         });
       } else {
-        processingStatus.value = t('upload.uploading');
+        processingStatus.value = `${progressPrefix}${t('upload.uploading')}`;
 
         const uploaded = await uploadFile(compressedFile, hash, originalHash);
 
@@ -260,6 +264,8 @@ const handleFileSelect = async (e) => {
           instantUpload: uploaded.instantUpload,
         });
       }
+      // 逐文件同步：每个成功的文件立即出现在预览区，处理中断也不丢已完成的
+      emit('update:modelValue', [...newFiles]);
     } catch (uploadErr) {
       console.error('[ImageUploader] Upload failed:', uploadErr);
       addToast({ message: t('upload.failed', { message: uploadErr.message }), type: 'error' });
@@ -277,7 +283,6 @@ const handleFileSelect = async (e) => {
     });
   }
 
-  emit('update:modelValue', newFiles);
   e.target.value = '';
 };
 

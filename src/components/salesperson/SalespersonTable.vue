@@ -67,7 +67,7 @@
     <!-- Actions Cell -->
     <template #cell-actions="{ row }">
       <div
-        class="mobile:opacity-100 flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+        class="flex items-center justify-end gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 max-lg:opacity-100"
       >
         <AppButton
           variant="ghost"

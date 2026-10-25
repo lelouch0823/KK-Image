@@ -3,6 +3,7 @@
     :model-value="modelValue"
     size="2xl"
     :title="t('order.manage.createTitle')"
+    :close-on-backdrop="false"
     @update:model-value="$emit('update:modelValue', false)"
   >
     <div class="p-4 sm:p-6">

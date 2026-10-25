@@ -9,8 +9,12 @@
           : 'text-(--text-secondary) hover:bg-(--bg-muted)'
       "
       :style="{ paddingLeft: `${level * 16 + 8}px` }"
+      role="treeitem"
+      :aria-selected="selectedId === node.id"
+      :aria-expanded="hasChildren ? expanded : undefined"
+      :tabindex="selectedId === node.id || !selectedId ? 0 : -1"
       @click="$emit('select', node.id)"
-      @contextmenu.prevent="showContextMenu = !showContextMenu"
+      @keydown.enter="$emit('select', node.id)"
     >
       <!-- 展开/折叠按钮 -->
       <AppButton v-if="hasChildren" variant="ghost" size="sm" @click.stop="expanded = !expanded">
@@ -31,7 +35,7 @@
 
       <!-- 操作按钮（hover 显示） -->
       <div
-        class="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100"
+        class="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 max-lg:opacity-100"
       >
         <AppButton
           variant="ghost"
@@ -95,7 +99,6 @@ const props = defineProps({
 defineEmits(['select', 'edit', 'add-child', 'delete']);
 
 const expanded = ref(true);
-const showContextMenu = ref(false);
 
 const hasChildren = computed(() => props.node.children && props.node.children.length > 0);
 </script>

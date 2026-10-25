@@ -2,6 +2,7 @@
   <div class="relative flex items-center justify-center">
     <input
       ref="inputEl"
+      v-bind="$attrs"
       type="checkbox"
       class="peer size-5 cursor-pointer appearance-none rounded-md border-2 border-(--border-color) bg-(--bg-card) transition-all duration-200 ease-in-out checked:border-primary! checked:bg-primary! hover:border-primary/50 focus-visible:ring-primary/20 focus-visible:ring-2 focus-visible:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
       :checked="isChecked"
@@ -21,6 +22,11 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
+
+// aria-label / id 等透传属性直接落到 input 上，而不是根包装 div
+defineOptions({
+  inheritAttrs: false,
+});
 
 const props = defineProps({
   modelValue: {

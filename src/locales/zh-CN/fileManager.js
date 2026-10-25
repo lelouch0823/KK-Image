@@ -1,5 +1,7 @@
 // 文件管理
 export default {
+
+  selectFolder: '选择文件夹 {name}',
   title: '文件管理',
   permissionDenied: '文件管理权限不足',
   permissionDeniedDesc: '当前账号没有文件管理读取权限，请联系管理员分配 files:read。',

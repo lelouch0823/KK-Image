@@ -36,7 +36,8 @@
         <SearchInput
           v-model="searchQuery"
           :placeholder="t('header.searchPlaceholder')"
-          input-class="h-9 w-64 !bg-(--bg-page)"
+          size="sm"
+          input-class="w-64 !bg-(--bg-page)"
           :debounce="300"
         />
       </div>
@@ -119,6 +120,21 @@
         </template>
       </AppButton>
 
+      <!-- 语言切换按钮（中/英） -->
+      <AppButton
+        variant="white"
+        size="sm"
+        :aria-label="t('header.switchLanguage')"
+        :title="t('header.switchLanguage')"
+        class="!h-9 !w-9 !gap-0 !px-0 text-xs !font-semibold"
+        @click="toggleLocale"
+      >
+        <template #icon-left>
+          <AppIcon name="globe" class="text-secondary size-4" />
+        </template>
+        <span class="text-secondary">{{ isEnglish ? '中' : 'EN' }}</span>
+      </AppButton>
+
       <!-- AI 助手按钮 -->
       <AppButton
         v-if="canUseAI"
@@ -165,7 +181,7 @@
             ref="mobileSearchInputRef"
             v-model="searchQuery"
             :placeholder="t('header.searchPlaceholder')"
-            input-class="h-10 !bg-(--bg-page)"
+            input-class="!bg-(--bg-page)"
             :debounce="300"
             @clear="closeMobileSearch"
           />
@@ -201,7 +217,11 @@ defineEmits(['openSidebar']);
 const route = useRoute();
 // 从路由 meta 获取页面标题
 const viewTitle = computed(() => route.meta?.title || t('common.adminPanel', '管理后台'));
-const { t } = useI18n();
+const { t, locale, setLocale } = useI18n();
+const isEnglish = computed(() => locale.value === 'en-US');
+const toggleLocale = () => {
+  setLocale(isEnglish.value ? 'zh-CN' : 'en-US');
+};
 const { searchQuery } = useSearch();
 const {
   notifications,

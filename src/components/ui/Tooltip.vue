@@ -72,23 +72,57 @@ const updatePosition = async () => {
   const contentRect = contentRef.value
     ? contentRef.value.getBoundingClientRect()
     : { width: 0, height: 0 };
+  const gap = 8;
 
-  // Default position: Top Center
-  let top = triggerRect.top - (contentRect.height || 30) - 8;
-  let left = triggerRect.left + triggerRect.width / 2 - (contentRect.width || 0) / 2;
+  let top;
+  let left;
 
-  // Viewport bound check
-  // If top overflow, move to bottom
-  if (top < 0) {
-    top = triggerRect.bottom + 8;
+  switch (props.position) {
+    case 'bottom':
+      top = triggerRect.bottom + gap;
+      left = triggerRect.left + triggerRect.width / 2 - (contentRect.width || 0) / 2;
+      // 底部溢出时翻回上方
+      if (top + (contentRect.height || 0) > window.innerHeight) {
+        top = triggerRect.top - (contentRect.height || 0) - gap;
+      }
+      break;
+    case 'left':
+      top = triggerRect.top + triggerRect.height / 2 - (contentRect.height || 0) / 2;
+      left = triggerRect.left - (contentRect.width || 0) - gap;
+      // 左侧溢出时翻到右侧
+      if (left < 0) {
+        left = triggerRect.right + gap;
+      }
+      break;
+    case 'right':
+      top = triggerRect.top + triggerRect.height / 2 - (contentRect.height || 0) / 2;
+      left = triggerRect.right + gap;
+      // 右侧溢出时翻到左侧
+      if (left + (contentRect.width || 0) > window.innerWidth) {
+        left = triggerRect.left - (contentRect.width || 0) - gap;
+      }
+      break;
+    case 'top':
+    default:
+      top = triggerRect.top - (contentRect.height || 0) - gap;
+      left = triggerRect.left + triggerRect.width / 2 - (contentRect.width || 0) / 2;
+      // 顶部溢出时翻到下方
+      if (top < 0) {
+        top = triggerRect.bottom + gap;
+      }
+      break;
   }
 
-  // Left boundary
-  if (left < 0) left = 4;
+  // 上下边界钳制
+  if (top < 0) top = 4;
+  if (top + (contentRect.height || 0) > window.innerHeight) {
+    top = Math.max(4, window.innerHeight - (contentRect.height || 0) - 4);
+  }
 
-  // Right boundary
-  if (left + contentRect.width > window.innerWidth) {
-    left = window.innerWidth - contentRect.width - 4;
+  // 左右边界钳制
+  if (left < 0) left = 4;
+  if (left + (contentRect.width || 0) > window.innerWidth) {
+    left = window.innerWidth - (contentRect.width || 0) - 4;
   }
 
   tooltipPosition.value = { top, left };

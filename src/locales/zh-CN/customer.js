@@ -1,6 +1,9 @@
 // 客户管理
 export default {
+
+  fallbackName: '客户 {id}',
   manage: {
+    createdHiddenByFilters: '客户已创建，但当前筛选条件未显示该客户',
     title: '客户管理',
     subtitle: '管理客户档案及查看历史订单',
     permissionDenied: '客户管理权限不足',
@@ -27,6 +30,7 @@ export default {
     importCustomers: '导入客户',
   },
   import: {
+    clickToUpload: '点击选择文件上传',
     title: '导入客户',
     step1: '上传文件',
     step2: '预览确认',

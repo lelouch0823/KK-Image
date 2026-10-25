@@ -16,6 +16,9 @@ function mountHarness(files, options = {}) {
   return { wrapper, api };
 }
 
+// 键盘交互（Esc/←/→）与 body 滚动锁已统一由 Lightbox 组件负责（经弹窗栈引用计数管理），
+// composable 只维护打开状态与当前文件，避免与组件内的 document 监听重复触发。
+
 describe('useLightbox', () => {
   afterEach(() => {
     document.body.style.overflow = '';
@@ -36,13 +39,11 @@ describe('useLightbox', () => {
     expect(api.visible.value).toBe(true);
     expect(api.currentIndex.value).toBe(1);
     expect(api.currentFile.value).toEqual(files.value[1]);
-    expect(document.body.style.overflow).toBe('hidden');
     expect(onOpen).toHaveBeenCalledWith(files.value[1], 1);
 
     api.close();
 
     expect(api.visible.value).toBe(false);
-    expect(document.body.style.overflow).toBe('');
     expect(onClose).toHaveBeenCalled();
   });
 
@@ -80,25 +81,25 @@ describe('useLightbox', () => {
     expect(api.currentIndex.value).toBe(2);
   });
 
-  it('responds to keyboard and wheel events only when visible', () => {
+  it('does not register duplicate document listeners or touch body scroll', () => {
     const files = ref([
       { id: '1', url: '/a.jpg', name: 'a.jpg' },
       { id: '2', url: '/b.jpg', name: 'b.jpg' },
     ]);
     const { api } = mountHarness(files);
 
-    api.handleWheel({ deltaY: 100 });
-    expect(api.currentIndex.value).toBe(0);
-
+    // 滚动锁由 Lightbox 组件（弹窗栈）管理，composable 不直接操作 overflow
     api.open(files.value[0], 0);
+    expect(api.visible.value).toBe(true);
 
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
-    expect(api.currentIndex.value).toBe(1);
-
-    api.handleWheel({ deltaY: -100 });
+    // composable 不再监听 document 键盘事件（由 Lightbox 组件统一处理），
+    // 因此这里的按键不应被消费
+    const event = new KeyboardEvent('keydown', { key: 'ArrowRight', cancelable: true });
+    document.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
     expect(api.currentIndex.value).toBe(0);
 
-    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    api.close();
     expect(api.visible.value).toBe(false);
   });
 
@@ -122,6 +123,5 @@ describe('useLightbox', () => {
     expect(removeChildSpy).toHaveBeenCalled();
 
     wrapper.unmount();
-    expect(document.body.style.overflow).toBe('');
   });
 });

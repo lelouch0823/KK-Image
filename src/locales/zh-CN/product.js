@@ -1,6 +1,9 @@
 // 商品模块
 export default {
+
+  fallbackName: '商品 {id}',
   manager: {
+    createdHiddenByFilters: '商品已创建，但当前筛选条件未显示该项',
     title: '商品管理',
     subtitle: '管理您的商品库存和价格',
     stats_overview: '统计概览',
@@ -23,6 +26,9 @@ export default {
     back_to_detail: '返回详情',
   },
   form: {
+    incomplete_variant_hint: '该历史变体与当前规格结构不一致。',
+    incomplete_variants_banner: '有 {count} 个历史变体与当前规格不一致，保存前请移除或归档。',
+    incomplete_variants_block_submit: '保存前请先移除或归档不完整的历史变体',
     name: '商品名称',
     name_placeholder: '请输入商品名称',
     description: '商品描述',
@@ -92,6 +98,7 @@ export default {
       actions: '操作',
     },
     variant: {
+      pending: '待完善',
       variant_name: '规格',
       sku: 'SKU',
       barcode: '条码',
@@ -106,6 +113,9 @@ export default {
     empty: '暂无商品数据',
   },
   filters: {
+    stock: '库存',
+    inStock: '有库存',
+    outOfStock: '无库存',
     search_placeholder: '搜索商品名称/SPU...',
     status: {
       all: '全部',
@@ -185,6 +195,16 @@ export default {
     },
   },
   import: {
+    batch: '批次',
+    importComplete: '导入完成！',
+    importFailed: '导入失败',
+    success: '成功',
+    failed: '失败',
+    checkConsole: '查看控制台获取详细日志',
+    selectColumn: '选择对应列',
+    upload_partial: '部分图片匹配失败',
+    error_invalid_status: '存在不受支持的状态值，请修正后再导入',
+    error_duplicate_name_without_spu: '检测到同名多行但未提供 SPU，无法安全分组，请补充 SPU 后再导入',
     title: '商品导入',
     step1_title: '下载模板 & 上传文件',
     step1_desc: '请先下载标准导入模板，填写后再上传。',
@@ -266,6 +286,8 @@ export default {
       report_total: '共 {count} 个问题',
       row: '第 {row} 行',
       issue: {
+        invalid_status: '状态值不受支持',
+        duplicate_name_without_spu: '同名多行未提供 SPU，无法安全合并为同一商品',
         missing_name: '商品名称为空',
         missing_sku: 'SKU 为空',
         duplicate_sku: 'SKU 重复',
@@ -321,6 +343,7 @@ export default {
     },
   },
   exportModal: {
+    detail_load_failed: '加载导出详情失败',
     title: '导出商品变体',
     format: '导出格式',
     excel_desc: '高级报表样式（分组表头、筛选、冻结、数值格式）',
@@ -390,5 +413,19 @@ export default {
     stock: '库存',
     status: '状态',
     apply: '应用',
+  },
+  binding: {
+    productImage: '商品图片',
+    availability: {
+      available: '可下单',
+      lowStock: '低库存',
+      outOfStockNoOrder: '缺货（不可下单）',
+      outOfStockPreorder: '缺货（可预订）',
+      archivedOptional: '已停用（可选）',
+      archivedNoOrder: '已停用（不可下单）',
+    },
+  },
+  picker: {
+    productImage: '商品图片',
   },
 };

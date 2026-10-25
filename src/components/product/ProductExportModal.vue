@@ -362,7 +362,7 @@ const handleGenerate = async () => {
     readyToDownload.value = true;
   } catch (error) {
     if (!isGenerationActive(requestId)) return;
-    statusText.value = error.message || t('common.error', '生成失败');
+    statusText.value = error.message || t('common.operationFailed', '生成失败');
     addToast({ type: 'error', message: statusText.value });
   } finally {
     if (requestId === generationRequestId) {

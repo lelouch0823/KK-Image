@@ -1,12 +1,14 @@
 <template>
-  <div ref="container" class="relative" v-bind="$attrs">
+  <div ref="container" class="relative" v-bind="rootAttrs">
     <!-- Trigger -->
     <button
-      :id="triggerId"
+      :id="id || triggerId"
       type="button"
       role="combobox"
       aria-haspopup="listbox"
       :aria-expanded="isOpen"
+      :disabled="disabled"
+      v-bind="triggerAttrs"
       :aria-activedescendant="
         isOpen && highlightIndex >= 0 ? `${triggerId}-option-${highlightIndex}` : undefined
       "
@@ -16,6 +18,7 @@
           ? 'h-9 rounded-lg px-2 focus-visible:ring-2'
           : 'h-11 rounded-xl px-4 focus-visible:ring-4',
         !modelValue ? 'text-(--text-secondary)' : 'text-(--text-main)',
+        disabled ? 'cursor-not-allowed opacity-50' : '',
       ]"
       @click="toggle"
       @keydown="handleKeydown"
@@ -86,13 +89,25 @@
 </template>
 
 <script setup>
-import { ref, computed, useId, useTemplateRef, watch } from 'vue';
+import { ref, computed, useId, useTemplateRef, watch, useAttrs } from 'vue';
 import { useElementBounding } from '@vueuse/core';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 defineOptions({
   inheritAttrs: false,
 });
+
+// 可访问性属性（aria-*/title）路由到 combobox 触发按钮，其余留在根包装上
+const attrs = useAttrs();
+const A11Y_ATTR_KEYS = ['aria-label', 'aria-labelledby', 'aria-describedby', 'title'];
+const triggerAttrs = computed(() =>
+  Object.fromEntries(A11Y_ATTR_KEYS.filter((k) => attrs[k] !== undefined).map((k) => [k, attrs[k]]))
+);
+const rootAttrs = computed(() =>
+  Object.fromEntries(
+    Object.entries(attrs).filter(([k]) => !A11Y_ATTR_KEYS.includes(k))
+  )
+);
 
 const props = defineProps({
   modelValue: {
@@ -114,6 +129,15 @@ const props = defineProps({
   size: {
     type: String,
     default: 'default',
+  },
+  disabled: {
+    type: Boolean,
+    default: false,
+  },
+  // 外部可传入 id 以支持 <label for="..."> 关联；缺省时使用内部生成的 id
+  id: {
+    type: String,
+    default: '',
   },
 });
 
@@ -152,6 +176,7 @@ const selectedLabel = computed(() => {
 });
 
 const toggle = async () => {
+  if (props.disabled) return;
   if (!isOpen.value) {
     update(); // Force update bounds
 
@@ -221,6 +246,8 @@ const handleKeydown = (event) => {
     case 'Escape': {
       if (isOpen.value) {
         event.preventDefault();
+        // 阻止冒泡到 document 上的 Modal 键盘监听，避免收起下拉时连带关闭底层弹窗
+        event.stopPropagation();
         isOpen.value = false;
         highlightIndex.value = -1;
       }

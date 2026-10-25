@@ -67,10 +67,12 @@ export default {
     notifications: 'Notifications',
     lightMode: 'Switch to light mode',
     darkMode: 'Switch to dark mode',
+    switchLanguage: 'Switch Chinese / English',
   },
 
   // Sidebar
   sidebar: {
+    settings: 'Settings',
     menu: 'MENU',
     manage: 'MANAGE',
     dashboard: 'Overview',
@@ -137,6 +139,9 @@ export default {
 
   // Notifications
   notification: {
+    markAsRead: 'Mark as read',
+    pollFailed: 'Polling failed',
+    pollRequestFailed: 'Poll request failed',
     title: 'Notifications',
     markAllRead: 'Read All',
     empty: 'No notifications',
@@ -177,6 +182,7 @@ export default {
 
   // Search
   search: {
+    failed: 'Search failed',
     history: 'Search History',
     clearHistory: 'Clear History',
     noHistory: 'No recent searches',
@@ -241,6 +247,67 @@ export default {
 
   // AI Assistant
   ai: {
+    actionPreview: {
+      step2: 'Confirm Preview',
+      confirmHint: 'Review the details below before creating.',
+      confirmCreate: 'Confirm & Create',
+      unitPrice: 'Unit price',
+      createPreview: 'Creation Preview',
+      selectedProduct: 'Selected product',
+      purchaseDetails: 'Purchase details',
+      detailN: 'Detail {n}',
+      quantity: 'Quantity',
+      coreInfo: 'Core Info',
+      product: 'Product',
+      salesperson: 'Salesperson',
+      specAndQty: 'Specs & Quantity',
+      color: 'Color',
+      size: 'Size',
+      material: 'Material',
+      supplementary: 'Supplementary',
+      remark: 'Remark',
+      deadline: 'Deadline',
+      status: 'Status',
+      createMethod: 'Create via',
+      mode: 'Mode',
+      currency: 'Currency',
+      feeInfo: 'Fees',
+      allocationMethod: 'Allocation method',
+      estimatedShipping: 'Est. shipping',
+      estimatedTariff: 'Est. tariff',
+      basicInfo: 'Basic Info',
+      productName: 'Product name',
+      brand: 'Brand',
+      category: 'Category',
+      specStructure: 'Spec structure',
+      specDimensions: 'Spec dimensions',
+      nDimensions: '{n} dimension(s)',
+      variantCount: 'Variant count',
+      variantSamples: 'Variant samples',
+      variantN: 'Variant {n}',
+      unnamedVariant: 'Unnamed variant',
+      previewInfo: 'Preview Info',
+    entity: {
+        order: 'Order',
+        purchaseOrder: 'Purchase Order',
+        product: 'Product',
+        customer: 'Customer',
+        salesperson: 'Salesperson',
+        record: 'Record',
+      }
+    },
+
+
+
+    streamError: {
+      toolRoundExhausted: 'This request is too complex. Narrow the scope and retry.',
+      actionFailed: 'The action did not complete. Adjust and retry.',
+      networkError: 'Network error. Please try again later.',
+      modelError: 'Model response error. Please try again later.',
+      inputError: 'Invalid input. Adjust and retry.',
+    },
+
+    streamEmptyBody: 'Empty response body; cannot read the stream',
     assistant: 'AI Assistant',
     subtitle: 'Data Analytics Assistant',
     placeholder: 'Ask about orders, customers, or storage...',
@@ -260,6 +327,7 @@ export default {
     toolLoading: 'Querying {tool} data...',
     clear: 'Clear Chat',
     clearConfirm: 'Clear all messages?',
+    stopGenerating: 'Stop generating',
     copySuccess: 'Message copied',
     modelSwitch: 'Model limit reached, switching to backup...',
     generateReport: 'Generate Full Report',
@@ -419,5 +487,40 @@ export default {
       empty:
         'After you select an event, this panel will show consumer state, replay scope, actions, and the latest result.',
     },
+  },
+  category: {
+    loadFailed: 'Failed to load categories',
+    loadTreeFailed: 'Failed to load the category tree',
+    createFailed: 'Failed to create category',
+    updateFailed: 'Failed to update category',
+    deleteFailed: 'Failed to delete category',
+  },
+  reminders: {
+    title: 'Reminder Center',
+    description: 'Handle follow-ups, confirmations and system reminders in one place.',
+    permissionTitle: 'No permission for Reminder Center',
+    permissionDesc: 'This account lacks the notifications:read permission.',
+    unreadCount: 'Unread reminders',
+    unreadHint: 'Read only means the reminder was seen; it does not alter business facts.',
+    markAllRead: 'Mark all as read',
+    emptyTitle: 'No pending reminders',
+    emptyDesc: 'New orders, notifications and anomalies will appear here.',
+    markRead: 'Mark as read',
+    untitled: 'Untitled reminder',
+    noContent: 'No additional notes',
+  },
+  permissionDenied: {
+    title: 'Access Restricted',
+    description: 'Your account lacks the permission required for this resource. Contact an administrator and retry.',
+    requiredPermission: 'Required permission:',
+    viewPermissionDetails: 'View permission details',
+  },
+  tag: {
+    loadFailed: 'Failed to load tags',
+    assignFailed: 'Failed to assign tag',
+    removeFailed: 'Failed to remove tag',
+  },
+  uploader: {
+    uploadFile: 'Upload file',
   },
 };

@@ -5,6 +5,7 @@
     :title="t('order.manage.editOrder')"
     body-class="flex-1 overflow-y-auto p-4 lg:p-6"
     :z-index="zIndex"
+    :close-on-backdrop="false"
     @update:model-value="$emit('close')"
   >
     <template #header>

@@ -8,10 +8,34 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <link rel="manifest" href="/manifest.webmanifest">
-    <meta name="theme-color" content="#3b82f6">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="KK Order">
+
+    <!-- 首屏主题初始化：在样式加载前应用暗色 class，避免暗色用户看到白色闪烁（FOUC）。
+         与 useTheme 保持同一逻辑：localStorage.theme 优先，否则跟随系统偏好。 -->
+    <script>
+        ;(function () {
+            try {
+                var saved = localStorage.getItem('theme');
+                var prefersDark =
+                    window.matchMedia &&
+                    window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (saved === 'dark' || (!saved && prefersDark)) {
+                    document.documentElement.classList.add('dark');
+                }
+                var meta = document.querySelector('meta[name="theme-color"]');
+                if (meta) {
+                    meta.setAttribute(
+                        'content',
+                        document.documentElement.classList.contains('dark') ? '#0c0a09' : '#3b82f6'
+                    );
+                }
+            } catch (e) {
+                /* localStorage 不可用时静默降级 */
+            }
+        })();
+    </script>
 
     <!-- Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

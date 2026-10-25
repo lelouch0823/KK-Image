@@ -198,6 +198,10 @@ const syncBodyScrollLock = () => {
 const handleKeydown = (e) => {
   if (!props.modelValue || !isTopModal(modalId.value)) return;
 
+  // 内层浮层（Select 下拉、Autocomplete、CommandPalette 等）处理 Esc 时会
+  // preventDefault；已被消费的按键不应再冒泡关闭 Modal，否则收起下拉会连带丢弃整表单
+  if (e.defaultPrevented) return;
+
   if (e.key === 'Escape' && props.closable) {
     close();
     return;

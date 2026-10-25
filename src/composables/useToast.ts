@@ -15,6 +15,24 @@ interface ShowToastOptions {
 
 const toasts: Ref<Toast[]> = ref([]);
 
+// 同时展示的 toast 上限：批量操作失败风暴时避免无限堆叠遮挡屏幕
+const MAX_VISIBLE_TOASTS = 5;
+
+// 非法/遗留类型归一化，保证 ToastContainer 的图标与语义色始终命中
+const VALID_TYPES = new Set(['success', 'error', 'warning', 'info']);
+const TYPE_ALIASES: Record<string, string> = {
+  danger: 'error',
+  alert: 'error',
+  failure: 'error',
+  fail: 'error',
+  ok: 'success',
+  message: 'info',
+};
+const normalizeType = (type: string): string => {
+  if (VALID_TYPES.has(type)) return type;
+  return TYPE_ALIASES[type] || 'info';
+};
+
 export function useToast() {
   const showToast = (message: string | ShowToastOptions, type: string = 'success', duration: number = 3000): string => {
     let msg: string;
@@ -32,9 +50,14 @@ export function useToast() {
       t = type;
       d = duration;
     }
+    t = normalizeType(t);
 
     const id = generateRandomId('toast');
     toasts.value.push({ id, message: msg, type: t });
+    if (toasts.value.length > MAX_VISIBLE_TOASTS) {
+      // 保留最新的 N 条，丢弃最旧的
+      toasts.value = toasts.value.slice(-MAX_VISIBLE_TOASTS);
+    }
 
     if (d > 0) {
       setTimeout(() => {

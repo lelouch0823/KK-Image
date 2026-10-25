@@ -9,16 +9,21 @@
       <!-- Step 1: 上传区域 -->
       <div v-if="step === 1" class="space-y-4">
         <div
-          class="relative flex min-h-[280px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 transition-colors"
+          class="relative flex min-h-[280px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 transition-colors focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20 focus:outline-none"
           :class="
             isDragOver
               ? 'border-primary bg-primary/10'
               : 'border-(--border-color) bg-(--bg-muted) hover:bg-(--bg-hover)'
           "
+          role="button"
+          tabindex="0"
+          :aria-label="t('customer.import.clickToUpload', '点击选择文件上传')"
           @dragover.prevent="isDragOver = true"
           @dragleave.prevent="isDragOver = false"
           @drop.prevent="handleDrop"
           @click="fileInputRef.click()"
+          @keydown.enter.prevent="fileInputRef.click()"
+          @keydown.space.prevent="fileInputRef.click()"
         >
           <input
             ref="fileInputRef"

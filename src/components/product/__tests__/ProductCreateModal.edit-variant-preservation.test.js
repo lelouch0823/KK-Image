@@ -28,7 +28,7 @@ vi.mock('@/composables/useToast', () => ({
 }));
 
 vi.mock('@/composables/useI18n', () => ({
-  useI18n: () => ({ t: (_k, fallback) => fallback || '' }),
+  useI18n: () => ({ t: (key, paramsOrFallback) => (typeof paramsOrFallback === 'string' ? paramsOrFallback : key) })
 }));
 
 describe('ProductCreateModal edit variant preservation', () => {
@@ -120,7 +120,7 @@ describe('ProductCreateModal edit variant preservation', () => {
     );
     expect(wrapper.vm.incompleteVariantCount).toBe(1);
     expect(wrapper.text()).toContain(
-      'There are 1 legacy variants that no longer match the current specs. Remove/archive them before saving.'
+      'product.form.incomplete_variants_banner'
     );
   });
 

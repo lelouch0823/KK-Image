@@ -139,7 +139,7 @@
     <!-- Actions Cell -->
     <template #cell-actions="{ row }">
       <div
-        class="flex items-center justify-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+        class="flex items-center justify-center gap-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100 max-lg:opacity-100"
       >
         <!-- Status toggle button -->
         <AppButton

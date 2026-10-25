@@ -19,7 +19,7 @@ vi.mock('vue-router', () => ({
 }));
 
 vi.mock('@/composables/useI18n', () => ({
-  useI18n: () => ({ t: (key) => key }),
+  useI18n: () => ({ t: (key) => key, locale: ref('zh-CN'), setLocale: vi.fn() }),
 }));
 
 vi.mock('@/composables/useSearch', () => {

@@ -163,7 +163,22 @@
                   class="[&_input]:rounded-xl [&_input]:border-none [&_input]:bg-(--bg-muted) [&_input]:py-3 [&_input]:pr-12"
                   @paste="onPaste"
                 />
+                <!-- 生成中：停止按钮（保留已生成的部分内容） -->
                 <AppButton
+                  v-if="isStreamingLoading || isAIStreaming || isAwaitingAssistant"
+                  variant="ghost"
+                  size="sm"
+                  class="text-danger absolute top-1.5 right-2 !h-8 !w-8 !px-0 hover:!bg-danger/10 hover:!text-danger"
+                  :aria-label="t('ai.stopGenerating', '停止生成')"
+                  :title="t('ai.stopGenerating', '停止生成')"
+                  @click="handleStopGeneration"
+                >
+                  <template #icon-left>
+                    <AppIcon name="stop" class="size-5" />
+                  </template>
+                </AppButton>
+                <AppButton
+                  v-else
                   :disabled="(!userInput.trim() && !attachedImage) || isStreamingLoading"
                   type="submit"
                   variant="ghost"
@@ -196,7 +211,7 @@
     <ConfirmDialog
       v-model="showClearConfirm"
       type="danger"
-      :title="t('ai.clearConfirm')"
+      :title="t('ai.clear')"
       :message="t('ai.clearConfirm')"
       @confirm="handleClearConfirm"
     />
@@ -445,6 +460,7 @@ const {
 
 const {
   stream: startAIStream,
+  cancel: cancelAIStream,
   fullContent,
   displayedContent: streamContent,
   isThinking,
@@ -453,6 +469,13 @@ const {
   toolStatus,
   actionCard,
 } = useAIStream();
+
+// 停止生成：中断流式请求；useAIStream 静默处理 AbortError，
+// 已生成的部分内容会走正常的 finalize 流程保留在对话中
+const handleStopGeneration = () => {
+  if (!isStreamingLoading.value && !isAIStreaming.value) return;
+  cancelAIStream();
+};
 
 const isGeneratingReport = ref(false);
 const isAwaitingAssistant = ref(false);

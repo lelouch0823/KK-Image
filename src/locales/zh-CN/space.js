@@ -159,6 +159,8 @@ export default {
 
   // spacePublic (公共空间页面)
   spacePublic: {
+    fileReady: '文件已就绪',
+    unnamedFile: '未命名文件',
     cannotLoad: '无法加载空间',
     invalidLink: '无效的分享链接',
     loadFailed: '加载失败',
@@ -208,6 +210,20 @@ export default {
 
   // space (SpaceManager/index.vue 使用)
   space: {
+    collection: {
+      subspaceCover: '子空间封面',
+    },
+
+    masonry: {
+      spaceImage: '空间图片',
+    },
+
+    mediaGrid: {
+      productImageN: '商品图 {n}',
+      spaceFile: '空间文件',
+    },
+
+    spaceImages: '空间图片',
     name: '空间名称',
     slug: '访问路径',
     description: '描述',

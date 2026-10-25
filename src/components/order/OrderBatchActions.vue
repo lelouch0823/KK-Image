@@ -134,6 +134,7 @@ import { useI18n } from '@/composables/useI18n';
 import AppButton from '@/components/ui/AppButton.vue';
 import AppIcon from '@/components/ui/AppIcon.vue';
 import FloatingSelectionBar from '@/design-system/composed/FloatingSelectionBar.vue';
+import { getStatusDotClass } from '@/design-system/toneContract';
 
 const props = defineProps({
   selectedCount: {
@@ -161,19 +162,9 @@ const { t } = useI18n();
 const showStatusDropdown = ref(false);
 const statusDropdownRef = ref(null);
 
-// 状态选项（带颜色标识）
+// 状态选项（带颜色标识）—— 颜色统一走 tone-contract，
+// 与 StatusBadge/StatusSelector/订单列表的状态点保持同一语义映射
 const statusOptions = computed(() => {
-  const colorMap = {
-    pending: 'bg-(--color-warning)',
-    confirmed: 'bg-(--color-primary)',
-    production: 'bg-(--color-info)',
-    shipping: 'bg-(--color-primary)',
-    arrived: 'bg-(--color-success)',
-    fulfilled: 'bg-(--color-success)',
-    delivered: 'bg-(--color-success)',
-    void: 'bg-(--color-danger)',
-  };
-
   // 如果有从 API 返回的状态列表，使用它；否则使用默认列表
   const statusList =
     props.statuses.length > 0
@@ -191,7 +182,7 @@ const statusOptions = computed(() => {
 
   return statusList.map((s) => ({
     ...s,
-    colorClass: colorMap[s.value] || 'bg-(--bg-muted)',
+    colorClass: getStatusDotClass(s.value),
     disabled: false,
   }));
 });

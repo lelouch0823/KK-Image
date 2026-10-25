@@ -52,6 +52,7 @@
           :model-value="filters.salesperson"
           :options="salespersonOptions"
           :placeholder="isMobile ? t('order.manage.salesShort') : t('order.manage.allSalespersons')"
+          :aria-label="t('order.manage.allSalespersons')"
           size="sm"
           @update:model-value="$emit('update:filters', { ...filters, salesperson: $event })"
         />
@@ -63,6 +64,7 @@
           :model-value="filters.status"
           :options="statusOptions"
           :placeholder="isMobile ? t('order.manage.statusShort') : t('order.manage.allStatuses')"
+          :aria-label="t('order.manage.allStatuses')"
           size="sm"
           @update:model-value="$emit('update:filters', { ...filters, status: $event })"
         />
@@ -78,6 +80,7 @@
               ? t('order.manage.procurementStatusShort')
               : t('order.manage.allProcurementStatuses')
           "
+          :aria-label="t('order.manage.allProcurementStatuses')"
           size="sm"
           @update:model-value="$emit('update:filters', { ...filters, procurementStatus: $event })"
         />
@@ -90,6 +93,7 @@
           :placeholder="
             isMobile ? t('order.manage.deliveryStatusShort') : t('order.manage.allDeliveryStatuses')
           "
+          :aria-label="t('order.manage.allDeliveryStatuses')"
           size="sm"
           @update:model-value="$emit('update:filters', { ...filters, deliveryStatus: $event })"
         />

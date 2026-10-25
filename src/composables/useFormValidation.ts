@@ -129,7 +129,7 @@ export function useFormValidation(options: UseFormValidationOptions = {}): UseFo
   }
 
   /**
-   * 将单个 Zod issue 转换为中文
+   * 将单个 Zod issue 转换为本地化文案
    */
   function formatZodIssue(issue: ZodIssue): string {
     const path = issue.path.join('.') || t('validation.thisField', '此字段');
@@ -137,32 +137,32 @@ export function useFormValidation(options: UseFormValidationOptions = {}): UseFo
     switch (issue.code) {
       case 'too_small':
         if (issue.type === 'string') {
-          if (issue.minimum === 1) return t('validation.required', `${path}不能为空`);
-          return t('validation.minLength', `${path}至少需要${issue.minimum}个字符`);
+          if (issue.minimum === 1) return t('validation.required', { path });
+          return t('validation.minLength', { path, minimum: issue.minimum });
         }
         if (issue.type === 'number') {
-          return t('validation.min', `${path}不能小于${issue.minimum}`);
+          return t('validation.min', { path, minimum: issue.minimum });
         }
         if (issue.type === 'array') {
-          return t('validation.minItems', `${path}至少需要${issue.minimum}项`);
+          return t('validation.minItems', { path, minimum: issue.minimum });
         }
         break;
       case 'too_big':
         if (issue.type === 'string') {
-          return t('validation.maxLength', `${path}不能超过${issue.maximum}个字符`);
+          return t('validation.maxLength', { path, maximum: issue.maximum });
         }
         if (issue.type === 'number') {
-          return t('validation.max', `${path}不能大于${issue.maximum}`);
+          return t('validation.max', { path, maximum: issue.maximum });
         }
         if (issue.type === 'array') {
-          return t('validation.maxItems', `${path}不能超过${issue.maximum}项`);
+          return t('validation.maxItems', { path, maximum: issue.maximum });
         }
         break;
       case 'invalid_type':
         if (issue.received === 'undefined' || issue.received === 'null') {
-          return t('validation.required', `${path}不能为空`);
+          return t('validation.required', { path });
         }
-        return t('validation.invalidType', `${path}类型不正确`);
+        return t('validation.invalidType', { path });
       case 'invalid_string':
         if (issue.validation === 'email') {
           return t('validation.email', '请输入有效的邮箱地址');
@@ -172,7 +172,7 @@ export function useFormValidation(options: UseFormValidationOptions = {}): UseFo
         }
         break;
       case 'invalid_enum_value':
-        return t('validation.invalidEnum', `${path}的值不在允许范围内`);
+        return t('validation.invalidEnum', { path });
       case 'custom':
         return issue.message || t('validation.error', '验证失败');
     }

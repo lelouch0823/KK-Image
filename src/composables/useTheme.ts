@@ -18,6 +18,11 @@ export function useTheme() {
       html.classList.remove('dark');
       setItem('theme', 'light');
     }
+    // 同步移动端浏览器地址栏颜色（与 index.html 首屏脚本保持一致）
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) {
+      meta.setAttribute('content', isDark.value ? '#0c0a09' : '#3b82f6');
+    }
   };
 
   const initTheme = (): void => {

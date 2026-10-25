@@ -6,6 +6,7 @@
  * - 智能控制毛玻璃效果（仅最顶层 Modal 显示）
  * - 根据打开顺序动态分配 z-index
  * - 支持 ESC 键优先关闭最顶层等逻辑
+ * - register/unregister 自动维护 body 滚动锁（引用计数语义）
  *
  * 使用方式：
  * const { register, unregister, shouldShowBlur, getZIndex } = useModalStack();
@@ -18,6 +19,18 @@ const openModals = ref<string[]>([]);
 // z-index 配置
 const BASE_Z_INDEX = 100; // 基础层级（高于侧边栏 z-50）
 const Z_INDEX_STEP = 10; // 每层递增
+
+/**
+ * 同步 body 滚动锁（引用计数语义）
+ *
+ * 栈内存在任何打开的弹层（Modal / Lightbox / CommandPalette 等）时锁定
+ * 背景滚动，全部关闭后才解锁。集中在此处管理后，任何一层关闭都不会
+ * 误解除仍在打开的其他弹层的滚动锁。
+ */
+const syncBodyScrollLock = (): void => {
+  if (typeof document === 'undefined') return;
+  document.body.style.overflow = openModals.value.length > 0 ? 'hidden' : '';
+};
 
 /**
  * 生成唯一 Modal ID
@@ -37,6 +50,7 @@ export function useModalStack() {
   const register = (id: string): void => {
     if (!openModals.value.includes(id)) {
       openModals.value.push(id);
+      syncBodyScrollLock();
     }
   };
 
@@ -48,6 +62,7 @@ export function useModalStack() {
     const index = openModals.value.indexOf(id);
     if (index > -1) {
       openModals.value.splice(index, 1);
+      syncBodyScrollLock();
     }
   };
 

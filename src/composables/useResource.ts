@@ -305,7 +305,7 @@ export function useResource<T extends ResourceItem = ResourceItem>(apiEndpoint: 
                 clearCache(); // 清空缓存以触发重新加载
                 return res.data as T;
             } else {
-                addToast({ message: res.error || res.message || t('common.error'), type: 'error' });
+                addToast({ message: res.error || res.message || t('common.operationFailed'), type: 'error' });
                 return null;
             }
         } catch (e: unknown) {
@@ -398,7 +398,7 @@ export function useResource<T extends ResourceItem = ResourceItem>(apiEndpoint: 
                 // 3. 失败回滚
                 items.value.splice(idx, 0, oldItem as T);
                 pagination.total = oldTotal;
-                addToast({ message: res.error || t('common.error'), type: 'error' });
+                addToast({ message: res.error || t('common.operationFailed'), type: 'error' });
                 return false;
             }
         } catch (e: unknown) {

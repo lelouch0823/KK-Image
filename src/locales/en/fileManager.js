@@ -1,5 +1,7 @@
 // File Management
 export default {
+
+  selectFolder: 'Select folder {name}',
   title: 'Files',
   permissionDenied: 'Permission Denied for File Management',
   permissionDeniedDesc:

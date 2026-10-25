@@ -75,8 +75,9 @@
                 v-if="canWriteNotifications"
                 variant="ghost"
                 size="sm"
-                class="text-primary !hidden !size-6 !rounded-full !p-0 group-hover:!inline-flex hover:!bg-(--bg-hover)"
+                class="text-primary !hidden !size-6 !rounded-full !p-0 group-hover:!inline-flex focus-visible:!inline-flex max-lg:!inline-flex hover:!bg-(--bg-hover)"
                 :title="t('notification.markAsRead', '标记为已读')"
+                :aria-label="t('notification.markAsRead', '标记为已读')"
                 @click.stop="markAsRead(item.id)"
               >
                 <template #icon-left>

@@ -72,10 +72,11 @@
               variant="plain"
               class="rounded-2xl border border-(--border-subtle) bg-(--bg-card)/85 p-4"
             >
-              <label class="text-xs font-medium text-(--text-secondary)">
+              <label :for="currencySelectId" class="text-xs font-medium text-(--text-secondary)">
                 {{ t('purchaseOrder.form.currency') }}
               </label>
               <AppSelect
+                :id="currencySelectId"
                 :model-value="createForm.currency"
                 :options="currencyOptions"
                 :placeholder="t('purchaseOrder.form.currency')"
@@ -304,7 +305,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, useId } from 'vue';
 import ActionBar from '@/design-system/composed/ActionBar.vue';
 import StatePanel from '@/design-system/composed/StatePanel.vue';
 import AppButton from '@/components/ui/AppButton.vue';
@@ -315,6 +316,8 @@ import Modal from '@/components/ui/Modal.vue';
 import AppSelect from '@/components/ui/Select.vue';
 import AppTable from '@/components/ui/AppTable.vue';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
+
+const currencySelectId = useId();
 
 const props = defineProps({
   show: { type: Boolean, default: false },

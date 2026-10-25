@@ -160,6 +160,8 @@ export default {
 
   // Public Space Page
   spacePublic: {
+    fileReady: 'File ready',
+    unnamedFile: 'Unnamed file',
     cannotLoad: 'Cannot load space',
     invalidLink: 'Invalid share link',
     loadFailed: 'Load failed',
@@ -207,6 +209,20 @@ export default {
 
   // Space General
   space: {
+    collection: {
+      subspaceCover: 'Subspace cover',
+    },
+
+    masonry: {
+      spaceImage: 'Space image',
+    },
+
+    mediaGrid: {
+      productImageN: 'Product image {n}',
+      spaceFile: 'Space file',
+    },
+
+    spaceImages: 'Space images',
     name: 'Space Name',
     slug: 'Access Path (Slug)',
     description: 'Description',

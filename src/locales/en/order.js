@@ -1,5 +1,8 @@
 // Order Management
 export default {
+
+  productImage: 'Product image',
+  files: 'Order files',
   // General
   title: 'Order Management',
   orderNo: 'Order No.',
@@ -48,6 +51,37 @@ export default {
 
   // Form Fields
   form: {
+    multilineEnabled: 'Currently in multi-item mode',
+    singleLineEnabled: 'Currently in single-item mode',
+    multilineHint: 'Saving will rewrite order lines and total quantity from the item details.',
+    singleLineHint: 'Switch to multi-line mode to add multiple items.',
+    backToSingleLine: 'Back to single line',
+    enableMultiline: 'Enable multi-line',
+    pleaseUploadImage: 'Please upload at least one product image',
+    pendingLines: '{count} line(s) still incomplete',
+    pleaseEnterName: 'Please enter the product name',
+    pleaseSelectSalesperson: 'Please select a salesperson',
+    pleaseComplete: 'Please complete the required fields',
+    lineTitle: 'Item {index}',
+    copyLine: 'Copy previous line',
+    addNextLine: 'Add next line',
+    blankLine: 'Blank line',
+    linePending: 'Complete the product info first',
+    lineEmpty: 'Bind a product, or enter a product name',
+    multilineSummaryTitle: 'Multi-line Summary',
+    multilineSummaryPending: '{count} line(s) still incomplete',
+    multilineSummaryReady: 'All lines are ready to submit',
+    summaryLines: 'Lines',
+    summaryQuantity: 'Total quantity',
+    summaryImages: 'Images',
+    summaryPending: 'Pending',
+    multilineTitle: 'Order Items',
+    multilineSubtitle: 'Each item binds independently; total quantity is aggregated on submit',
+    addLine: 'Add item',
+    bound: 'Bound',
+    manualEntry: 'Manual entry',
+    pending: 'Pending',
+    pendingMessage: 'Enter a product name or bind a product',
     productName: 'Product Name',
     productNamePlaceholder: 'e.g., Dining Table',
     size: 'Specifications',
@@ -75,6 +109,8 @@ export default {
     skuPlaceholder: 'e.g., AF1-001',
     quantity: 'Quantity',
     quantityPlaceholder: 'Enter quantity',
+    unitPrice: 'Unit Price (CNY)',
+    unitPricePlaceholder: 'Optional, defaults to 0',
     recentInputs: 'Recent Inputs',
   },
 
@@ -381,6 +417,7 @@ export default {
 
   // Receivables
   receivables: {
+    orderCount: '{count} order(s)',
     title: 'Receivables',
     totalOutstanding: 'Total Outstanding',
     totalPaid: 'Total Paid',
@@ -455,4 +492,26 @@ export default {
   },
   // F5: shown when the oldest items are dropped after hitting the list cap
   listTruncatedHint: 'List display limit reached — use search to find older orders',
+  logistics: {
+    title: 'Logistics Tracking',
+    carrier: 'Carrier',
+    trackingNo: 'Tracking Number',
+    trackingNoPlaceholder: 'Enter tracking number',
+    noTracking: 'No tracking info yet',
+    clickToSet: 'Click the edit button to add a tracking number',
+    noEvents: 'No tracking events yet',
+    saveSuccess: 'Logistics info updated',
+    saveFailed: 'Failed to save logistics info',
+  },
+  print: {
+    title: 'Print Orders',
+    orderList: 'Order List',
+    printTime: 'Printed at',
+    orderNo: 'Order No.',
+    productName: 'Product Name',
+    status: 'Status',
+    quantity: 'Qty',
+    salesperson: 'Salesperson',
+    createdAt: 'Created At',
+  },
 };

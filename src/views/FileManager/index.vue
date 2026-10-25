@@ -58,7 +58,7 @@
           />
         </div>
         <div v-else-if="error" class="flex flex-1 flex-col items-center justify-center p-6">
-          <EmptyState icon="inbox" :title="t('common.error')" :description="error" type="danger">
+          <EmptyState icon="inbox" :title="t('common.operationFailed')" :description="error" type="danger">
             <template #action>
               <AppButton
                 variant="primary"

@@ -1,14 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { reactive, nextTick } from 'vue';
 import { z } from 'zod';
 import { useFormValidation, useFieldValidation } from '../useFormValidation';
 
-// 模拟 useI18n
-vi.mock('@/composables/useI18n', () => ({
-  useI18n: () => ({
-    t: (key: string, fallback: string) => fallback,
-  }),
-}));
+// 使用真实 useI18n（zh-CN 语言包），验证参数化校验文案的插值
 
 describe('useFormValidation', () => {
   describe('基础功能', () => {

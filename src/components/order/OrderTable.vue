@@ -6,6 +6,7 @@
     row-key="id"
     class="h-full"
     no-border
+    clickable
     :virtual="data.length > 50"
     :estimate-size="64"
     :sticky-first-column="true"
@@ -23,6 +24,7 @@
         <AppCheckbox
           :checked="isAllSelected"
           :indeterminate="isPartialSelected"
+          :aria-label="t('common.selectAll', '全选')"
           @change="toggleSelectAll"
         />
       </div>
@@ -31,7 +33,11 @@
     <!-- Selection Cell -->
     <template #cell-selection="{ row }">
       <div class="flex items-center justify-center" @click.stop>
-        <AppCheckbox :checked="isSelected(row.id)" @change="toggleSelect(row.id)" />
+        <AppCheckbox
+          :checked="isSelected(row.id)"
+          :aria-label="t('common.selectRow', '选择该行')"
+          @change="toggleSelect(row.id)"
+        />
       </div>
     </template>
 
@@ -96,10 +102,13 @@
 
     <!-- Status Cell -->
     <template #cell-status="{ row }">
-      <slot name="status" :order="row">
-        <!-- Fallback if no slot provided -->
-        <AppTableStatusPill :label="row.status" variant="default" size="xs" />
-      </slot>
+      <!-- 阻止状态切换按钮的点击冒泡到行，避免同时打开详情弹窗（与移动端 OrderCards 一致） -->
+      <div class="inline-flex min-w-0" @click.stop>
+        <slot name="status" :order="row">
+          <!-- Fallback if no slot provided -->
+          <AppTableStatusPill :label="row.status" variant="default" size="xs" />
+        </slot>
+      </div>
     </template>
 
     <!-- Created At Cell -->
@@ -110,7 +119,7 @@
     <!-- Actions Cell -->
     <template #cell-actions="{ row }">
       <div
-        class="flex items-center justify-center gap-2 opacity-0 transition-opacity group-hover:opacity-100"
+        class="flex items-center justify-center gap-2 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 max-lg:opacity-100"
       >
         <AppButton
           variant="ghost"

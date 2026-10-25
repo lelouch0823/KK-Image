@@ -132,7 +132,10 @@
                       height: `${virtualRow.size}px`,
                       transform: `translateY(${virtualRow.start}px)`,
                     }"
+                    :role="clickable ? 'button' : undefined"
+                    :tabindex="clickable ? 0 : undefined"
                     @click="handleRowClick(virtualRow.index)"
+                    @keydown.enter.prevent="handleRowClick(virtualRow.index)"
                   >
                     <table class="w-full text-left text-sm" :style="{ tableLayout }">
                       <tbody>
@@ -175,7 +178,9 @@
                 :key="row[rowKey] || index"
                 class="group transition-colors hover:bg-(--bg-hover)/70"
                 :class="{ 'cursor-pointer': clickable }"
+                :tabindex="clickable ? 0 : undefined"
                 @click="$emit('row-click', row)"
+                @keydown.enter.prevent="clickable && $emit('row-click', row)"
               >
                 <td
                   v-for="(col, colIndex) in normalizedColumns"

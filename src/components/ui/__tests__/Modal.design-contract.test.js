@@ -112,4 +112,31 @@ describe('Modal design contract', () => {
     second.unmount();
     expect(document.body.style.overflow).toBe('');
   });
+
+  it('ignores Escape already consumed by an inner overlay (defaultPrevented)', async () => {
+    const wrapper = mount(Modal, {
+      attachTo: document.body,
+      props: { modelValue: true, title: 'Form modal' },
+      slots: { default: '<div>Body</div>' },
+      global: {
+        stubs: { Teleport: { template: '<div><slot /></div>' } },
+      },
+    });
+    const emitted = () => wrapper.emitted('update:modelValue');
+
+    // 内层浮层（如 Select 下拉）已 preventDefault 的 Esc 不应关闭 Modal
+    const consumed = new KeyboardEvent('keydown', { key: 'Escape', cancelable: true });
+    consumed.preventDefault();
+    document.dispatchEvent(consumed);
+    await nextTick();
+    expect(emitted()).toBeUndefined();
+
+    // 未消费的 Esc 正常关闭
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', cancelable: true }));
+    await nextTick();
+    expect(emitted()).toBeTruthy();
+    expect(emitted()[0]).toEqual([false]);
+
+    wrapper.unmount();
+  });
 });

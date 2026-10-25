@@ -5,8 +5,8 @@
       :value="modelValue"
       type="text"
       :placeholder="placeholder"
-      class="input pl-9"
-      :class="[inputClass, { 'pr-8': clearable && modelValue }]"
+      class="block w-full rounded-lg border border-(--border-color) bg-(--bg-card) text-(--text-main) placeholder-(--text-muted) transition-all duration-150 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/15 focus:outline-none"
+      :class="[sizeClass, inputClass, { 'pr-8': clearable && modelValue }]"
       @input="handleInput"
       @keydown="handleKeydown"
     />
@@ -20,7 +20,8 @@
       v-if="clearable && modelValue"
       type="button"
       :aria-label="t('common.clearSearch', '清除搜索')"
-      class="absolute top-1/2 right-2 flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center p-1 text-(--text-muted) transition-colors hover:text-(--text-main)"
+      class="absolute top-1/2 right-2 flex -translate-y-1/2 items-center justify-center p-1 text-(--text-muted) transition-colors hover:text-(--text-main)"
+      :class="size === 'sm' ? 'min-h-9 min-w-9' : 'min-h-11 min-w-11'"
       @click="clear"
     >
       <AppIcon name="x-mark" class="size-4" />
@@ -29,7 +30,7 @@
 </template>
 
 <script setup>
-import { useId } from 'vue';
+import { computed, useId } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
@@ -52,10 +53,19 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  size: {
+    type: String,
+    default: 'default',
+    validator: (v) => ['default', 'sm'].includes(v),
+  },
   inputClass: { type: String, default: '' },
 });
 
 const emit = defineEmits(['update:modelValue', 'search', 'clear']);
+
+const sizeClass = computed(() =>
+  props.size === 'sm' ? 'h-9 pl-9 text-sm' : 'h-10 pl-9 text-sm'
+);
 
 let debounceTimer = null;
 

@@ -41,6 +41,7 @@
           variant="white"
           size="sm"
           class="!rounded-full border-(--border-color) hover:!border-primary hover:!bg-primary/10 hover:!text-primary"
+          :disabled="assigning"
           @click="handleAssignTag(tag)"
         >
           <span
@@ -91,6 +92,7 @@ const { tags, loadingTags, fetchTags, createTag, assignTag } = useTags();
 
 const newTagName = ref('');
 const creating = ref(false);
+const assigning = ref(false);
 
 const handleCreateTag = async () => {
   if (!newTagName.value.trim() || creating.value) return;
@@ -105,7 +107,7 @@ const handleCreateTag = async () => {
     newTagName.value = '';
     addToast({ message: t('fileManager.tagCreated'), type: 'success' });
   } catch (err) {
-    addToast({ message: err.message || t('common.error'), type: 'danger' });
+    addToast({ message: err.message || t('common.operationFailed'), type: 'danger' });
   } finally {
     creating.value = false;
   }
@@ -113,6 +115,9 @@ const handleCreateTag = async () => {
 
 const handleAssignTag = async (tag) => {
   if (!props.items?.length) return;
+  // 防止批量打标进行中重复点击造成重复请求
+  if (assigning.value) return;
+  assigning.value = true;
 
   try {
     // We bulk assign
@@ -124,7 +129,9 @@ const handleAssignTag = async (tag) => {
     emit('tagged');
     emit('update:modelValue', false);
   } catch (_err) {
-    addToast({ message: t('common.error'), type: 'danger' });
+    addToast({ message: t('common.operationFailed'), type: 'error' });
+  } finally {
+    assigning.value = false;
   }
 };
 

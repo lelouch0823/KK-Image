@@ -23,11 +23,13 @@
     <!-- 操作遮罩层 -->
     <div
       v-if="!readonly"
-      class="absolute inset-0 flex items-center justify-center gap-2 bg-(--color-overlay-dim) opacity-0 transition-opacity group-hover:opacity-100"
+      class="absolute inset-0 flex items-center justify-center gap-2 bg-(--color-overlay-dim) opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 max-lg:opacity-100"
     >
       <!-- 替换按钮 -->
       <label
         class="flex size-8 cursor-pointer items-center justify-center rounded-full bg-(--bg-card)/90 text-(--text-main) transition-colors hover:bg-(--bg-card)"
+        :aria-label="t('common.replace', '替换图片')"
+        :title="t('common.replace', '替换图片')"
       >
         <input type="file" accept="image/*" class="hidden" @change="$emit('replace', $event)" />
         <AppIcon name="arrow-path" class="size-4" />
@@ -37,6 +39,8 @@
         variant="danger"
         size="sm"
         class="!size-8 !rounded-full !p-0"
+        :aria-label="t('common.delete', '删除图片')"
+        :title="t('common.delete', '删除图片')"
         @click="$emit('remove')"
       >
         <template #icon-left>

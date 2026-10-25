@@ -1,6 +1,9 @@
 // Customer Management
 export default {
+
+  fallbackName: 'Customer {id}',
   manage: {
+    createdHiddenByFilters: 'Customer created, but hidden by the current filters',
     title: 'Customers',
     subtitle: 'Manage customer profiles and view order history',
     permissionDenied: 'Permission Denied for Customers',
@@ -28,6 +31,7 @@ export default {
     importCustomers: 'Import Customers',
   },
   import: {
+    clickToUpload: 'Click to choose a file to upload',
     title: 'Import Customers',
     step1: 'Upload File',
     step2: 'Preview & Confirm',

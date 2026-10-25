@@ -3,6 +3,7 @@
     :model-value="true"
     size="2xl"
     body-class="flex flex-col p-0 h-[80vh] overflow-hidden"
+    :close-on-backdrop="false"
     @update:model-value="$emit('close')"
   >
     <template #header>
@@ -67,12 +68,18 @@
           "
           @click="navigateTo(folder.id, folder)"
         >
-          <div
-            class="absolute top-2 right-2 z-10 opacity-0 transition-opacity group-hover:opacity-100"
-            :class="{ 'opacity-100': selectedFolderIds.includes(folder.id) }"
+          <AppButton
+            type="button"
+            variant="ghost"
+            class="absolute top-2 right-2 z-10 !size-7 !rounded-full !p-0 transition-opacity"
+            :class="
+              selectedFolderIds.includes(folder.id) ? 'opacity-100' : 'opacity-70 hover:opacity-100'
+            "
+            :aria-pressed="selectedFolderIds.includes(folder.id)"
+            :aria-label="t('fileManager.selectFolder', { name: folder.name })"
             @click="(e) => toggleFolderSelect(folder.id, e)"
           >
-            <div
+            <span
               class="flex size-6 items-center justify-center rounded-full border shadow-sm transition-all"
               :class="
                 selectedFolderIds.includes(folder.id)
@@ -85,8 +92,8 @@
                 name="check"
                 class="size-3.5 stroke-3 text-(--text-inverse)"
               />
-            </div>
-          </div>
+            </span>
+          </AppButton>
           <AppIcon
             name="folder-solid"
             class="text-info mb-2 size-12 transition-transform duration-200 group-hover:scale-110"

@@ -11,6 +11,7 @@
       <div
         v-if="isOpen"
         class="fixed inset-0 z-[200] flex items-start justify-center bg-(--color-overlay-dim) px-4 pt-[20vh]"
+        :style="{ zIndex: paletteZIndex }"
         @click.self="close"
       >
         <transition
@@ -47,7 +48,7 @@
                 @keydown.down.prevent="moveDown"
                 @keydown.up.prevent="moveUp"
                 @keydown.enter.prevent="executeSelected"
-                @keydown.escape.prevent="close"
+                @keydown.escape.prevent.stop="close"
               />
               <kbd
                 class="hidden rounded border border-(--border-color) bg-(--bg-muted) px-1.5 py-0.5 text-xs font-medium text-(--text-muted) sm:inline-block"
@@ -163,9 +164,10 @@
 </template>
 
 <script setup>
-import { ref, watch, nextTick, computed } from 'vue';
+import { ref, watch, nextTick, computed, onUnmounted } from 'vue';
 import { useCommandPalette } from '@/composables/useCommandPalette';
 import { useI18n } from '@/composables/useI18n';
+import { useModalStack } from '@/composables/useModalStack';
 import AppIcon from '@/components/ui/AppIcon.vue';
 
 const {
@@ -181,8 +183,16 @@ const {
 } = useCommandPalette();
 const { t } = useI18n();
 
+// 注册进弹窗栈：获得"栈顶"语义（下方 Modal 不再响应 Esc）与滚动锁
+const { generateModalId, register, unregister, getZIndex } = useModalStack();
+const paletteId = generateModalId();
+
 const searchInput = ref(null);
 const resultsContainer = ref(null);
+// 记录打开前的焦点元素，关闭时归还（⌘K 从任意位置呼出）
+let previouslyFocusedElement = null;
+
+const paletteZIndex = computed(() => getZIndex(paletteId));
 
 // 将 allResults 按 category 分组
 const groupedResults = computed(() => {
@@ -241,13 +251,25 @@ function handleItemClick(item) {
   close();
 }
 
-// 打开时聚焦输入框
+// 打开时聚焦输入框；注册弹窗栈并保存焦点
 watch(isOpen, (val) => {
   if (val) {
+    previouslyFocusedElement = document.activeElement;
+    register(paletteId);
     nextTick(() => {
       searchInput.value?.focus();
     });
+  } else {
+    unregister(paletteId);
+    if (previouslyFocusedElement && typeof previouslyFocusedElement.focus === 'function') {
+      previouslyFocusedElement.focus();
+      previouslyFocusedElement = null;
+    }
   }
+});
+
+onUnmounted(() => {
+  unregister(paletteId);
 });
 
 // 滚动到选中项
@@ -267,6 +289,8 @@ watch(selectedIndex, () => {
 const handleKeydown = (e) => {
   if (e.key === 'Escape') {
     e.preventDefault();
+    // 面板已注册为弹窗栈顶，仍需阻断冒泡，避免下层 Modal 的 document 监听重复关闭
+    e.stopPropagation();
     close();
   }
 };

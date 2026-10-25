@@ -1,5 +1,9 @@
 // 订货总览 翻译 (Goods Overview)
 export default {
+
+  selectVariants: '请选择变体',
+  onlyShortageVariants: '仅可为存在缺货的变体创建采购单',
+  createFailed: '生成失败',
   subtitle: '根据已确认订单分析订货需求与供应链状态',
   pipeline: {
     confirmed: '待订货',
@@ -56,6 +60,8 @@ export default {
     deselectAll: '取消全选',
   },
   toast: {
+    selectProductWithVariant: '请选择包含规格的商品',
+    poCreateFailed: '生成采购单失败',
     poCreated: '已从选中商品生成采购单',
   },
 };

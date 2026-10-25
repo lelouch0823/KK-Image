@@ -29,6 +29,8 @@ import oauth from './oauth';
 
 export default {
   common,
+  validation: common.validation,
+  autocomplete: common.autocomplete,
   formatters,
   upload,
   fileManager,
@@ -36,6 +38,7 @@ export default {
   stats,
   gallery,
   order,
+  receivables: order.receivables,
   product,
   salesperson,
   settings,
@@ -69,6 +72,11 @@ export default {
   pwa: misc.pwa,
   salesStats: misc.salesStats,
   ai: misc.ai,
+  category: misc.category,
+  reminders: misc.reminders,
+  permissionDenied: misc.permissionDenied,
+  tag: misc.tag,
+  uploader: misc.uploader,
   auditLogs: misc.auditLogs,
   outboxOps: misc.outboxOps,
   commandPalette,

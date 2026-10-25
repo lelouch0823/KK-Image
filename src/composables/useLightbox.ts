@@ -1,4 +1,4 @@
-import { ref, computed, onMounted, onScopeDispose, type Ref } from 'vue';
+import { ref, computed, type Ref } from 'vue';
 
 /** 灯箱文件项接口 */
 interface LightboxFile {
@@ -18,6 +18,10 @@ interface LightboxOptions {
 /**
  * 灯箱预览 Composable
  * 用于图片画廊的全屏预览
+ *
+ * 注意：键盘交互（Esc/←/→）与 body 滚动锁由 Lightbox 组件统一负责，
+ * 此处只管理打开状态与当前文件，避免与组件内的 document 监听重复触发
+ * （曾导致按一次方向键跳两张）。
  */
 export function useLightbox(files: Ref<LightboxFile[]> | LightboxFile[], options: LightboxOptions = {}) {
   const { onOpen, onClose, onNext, onPrev } = options;
@@ -36,7 +40,6 @@ export function useLightbox(files: Ref<LightboxFile[]> | LightboxFile[], options
     currentFile.value = file;
     currentIndex.value = index;
     visible.value = true;
-    document.body.style.overflow = 'hidden';
 
     if (onOpen) onOpen(file, index);
   };
@@ -44,7 +47,6 @@ export function useLightbox(files: Ref<LightboxFile[]> | LightboxFile[], options
   // 关闭灯箱
   const close = (): void => {
     visible.value = false;
-    document.body.style.overflow = '';
 
     if (onClose) onClose();
   };
@@ -80,34 +82,6 @@ export function useLightbox(files: Ref<LightboxFile[]> | LightboxFile[], options
     }
   };
 
-  // 键盘事件处理
-  const handleKeydown = (e: KeyboardEvent): void => {
-    if (!visible.value) return;
-
-    switch (e.key) {
-      case 'Escape':
-        close();
-        break;
-      case 'ArrowLeft':
-        prev();
-        break;
-      case 'ArrowRight':
-        next();
-        break;
-    }
-  };
-
-  // 滚轮事件处理
-  const handleWheel = (e: WheelEvent): void => {
-    if (!visible.value) return;
-
-    if (e.deltaY > 0) {
-      next();
-    } else if (e.deltaY < 0) {
-      prev();
-    }
-  };
-
   // 计算属性
   const hasPrev = computed(() => currentIndex.value > 0);
   const hasNext = computed(() => {
@@ -117,16 +91,6 @@ export function useLightbox(files: Ref<LightboxFile[]> | LightboxFile[], options
   const total = computed(() => {
     const filesArray = getFilesArray();
     return filesArray.length;
-  });
-
-  // 注册键盘事件
-  onMounted(() => {
-    document.addEventListener('keydown', handleKeydown);
-  });
-
-  onScopeDispose(() => {
-    document.removeEventListener('keydown', handleKeydown);
-    document.body.style.overflow = '';
   });
 
   // 下载助手
@@ -153,7 +117,6 @@ export function useLightbox(files: Ref<LightboxFile[]> | LightboxFile[], options
     hasPrev,
     hasNext,
     total,
-    handleWheel,
     download,
   };
 }

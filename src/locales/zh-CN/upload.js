@@ -18,4 +18,5 @@ export default {
   failed: '上传失败: {message}',
   compressFailed: '压缩失败: {message}',
   compressionSaved: '已压缩 {percent}%',
+  minimize: '收起上传面板',
 };

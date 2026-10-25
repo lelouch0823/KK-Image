@@ -3,6 +3,7 @@
     :model-value="true"
     :title="isSubspace ? t('spaceManager.createSubspace') : t('spaceManager.createModalTitle')"
     size="md"
+    :close-on-backdrop="false"
     @update:model-value="$emit('close')"
   >
     <form class="space-y-4" @submit.prevent="handleSubmit">
@@ -64,6 +65,7 @@
             v-model="form.name"
             :label="t('space.name')"
             :placeholder="t('space.namePlaceholder')"
+            :error="nameError"
             required
           />
 
@@ -83,6 +85,7 @@
           v-model="form.name"
           :label="`${t('spaceManager.spaceName')} *`"
           required
+          :error="nameError"
           :placeholder="t('spaceManager.spaceNamePlaceholder')"
         />
       </div>
@@ -116,7 +119,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useSpaces } from '@/composables/useSpaces';
 import { useI18n } from '@/composables/useI18n';
 import { useAccessControl } from '@/composables/useAccessControl';
@@ -167,6 +170,15 @@ const form = ref({
 });
 
 const submitting = ref(false);
+const nameError = ref('');
+
+// 输入后清除校验错误
+watch(
+  () => form.value.name,
+  () => {
+    if (nameError.value && form.value.name.trim()) nameError.value = '';
+  }
+);
 
 const templates = computed(() =>
   [
@@ -238,7 +250,13 @@ const unbindProduct = () => {
 };
 
 const handleSubmit = async () => {
-  if (submitting.value || !form.value.name.trim()) return;
+  if (submitting.value) return;
+  if (!form.value.name.trim()) {
+    // 提交失败要有可见反馈，不能静默返回
+    nameError.value = t('common.required', { path: t('space.name') });
+    return;
+  }
+  nameError.value = '';
 
   const hasProductBinding = !!form.value.productId || !!form.value.variantId;
   const isProductBindingComplete = !!form.value.productId && !!form.value.variantId;

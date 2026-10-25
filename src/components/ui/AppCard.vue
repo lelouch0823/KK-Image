@@ -2,13 +2,16 @@
   <div
     class="group relative overflow-hidden rounded-2xl border bg-(--bg-card) transition-all duration-200"
     :data-tone="accentTone"
+    :role="clickable ? 'button' : undefined"
+    :tabindex="clickable ? 0 : undefined"
     :class="[
       borderClass,
       clickable
-        ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.99] active:shadow-sm'
+        ? 'cursor-pointer hover:-translate-y-0.5 hover:shadow-lg focus-visible:-translate-y-0.5 focus-visible:shadow-lg active:scale-[0.99] active:shadow-sm'
         : 'shadow-card',
     ]"
     @click="clickable && $emit('click', $event)"
+    @keydown="handleKeydown"
   >
     <div
       v-if="$slots.header || indicator"
@@ -60,7 +63,16 @@ const props = defineProps({
   glow: { type: Boolean, default: false },
 });
 
-defineEmits(['click']);
+const emit = defineEmits(['click']);
+
+// 可点击卡片对键盘用户可用：Enter/Space 触发与点击一致的行为
+const handleKeydown = (e) => {
+  if (!props.clickable) return;
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    emit('click', e);
+  }
+};
 
 const accentTone = computed(() => normalizeTone(props.indicator || 'primary'));
 

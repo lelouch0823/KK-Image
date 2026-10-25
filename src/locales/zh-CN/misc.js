@@ -67,10 +67,12 @@ export default {
     notifications: '通知',
     lightMode: '切换亮色模式',
     darkMode: '切换暗色模式',
+    switchLanguage: '切换中英文',
   },
 
   // 侧边栏
   sidebar: {
+    settings: '设置',
     menu: '菜单',
     manage: '管理',
     dashboard: '概览',
@@ -137,6 +139,9 @@ export default {
 
   // 通知
   notification: {
+    markAsRead: '标记为已读',
+    pollFailed: '轮询失败',
+    pollRequestFailed: '轮询请求失败',
     title: '通知中心',
     markAllRead: '全部已读',
     empty: '暂无通知',
@@ -176,6 +181,7 @@ export default {
 
   // 搜索
   search: {
+    failed: '搜索失败',
     history: '搜索历史',
     clearHistory: '清除历史',
     noHistory: '暂无搜索记录',
@@ -240,6 +246,67 @@ export default {
 
   // AI 助手
   ai: {
+    actionPreview: {
+      step2: '确认预览',
+      confirmHint: '请确认以下信息后再创建。',
+      confirmCreate: '确认创建',
+      unitPrice: '单价',
+      createPreview: '创建预览',
+      selectedProduct: '已选择商品',
+      purchaseDetails: '采购明细',
+      detailN: '明细 {n}',
+      quantity: '数量',
+      coreInfo: '核心信息',
+      product: '商品',
+      salesperson: '销售员',
+      specAndQty: '规格与数量',
+      color: '颜色',
+      size: '尺码',
+      material: '材质',
+      supplementary: '补充说明',
+      remark: '备注',
+      deadline: '交期',
+      status: '状态',
+      createMethod: '创建方式',
+      mode: '模式',
+      currency: '币种',
+      feeInfo: '费用信息',
+      allocationMethod: '分摊方式',
+      estimatedShipping: '预计运费',
+      estimatedTariff: '预计关税',
+      basicInfo: '基础信息',
+      productName: '商品名称',
+      brand: '品牌',
+      category: '分类',
+      specStructure: '规格结构',
+      specDimensions: '规格维度',
+      nDimensions: '{n} 个维度',
+      variantCount: '变体数量',
+      variantSamples: '变体样本',
+      variantN: '变体 {n}',
+      unnamedVariant: '未命名变体',
+      previewInfo: '预览信息',
+    entity: {
+        order: '订单',
+        purchaseOrder: '采购单',
+        product: '商品',
+        customer: '客户',
+        salesperson: '销售员',
+        record: '记录',
+      }
+    },
+
+
+
+    streamError: {
+      toolRoundExhausted: '当前请求过于复杂，建议缩小范围后重试。',
+      actionFailed: '当前操作未完成，请调整后重试。',
+      networkError: '网络异常，请稍后重试。',
+      modelError: '模型响应异常，请稍后重试。',
+      inputError: '输入内容无效，请调整后重试。',
+    },
+
+    streamEmptyBody: '响应体为空，无法读取流数据',
     assistant: 'AI 助手',
     subtitle: '全能数据统计助手',
     placeholder: '询问订单、客户、销售、空间或文件统计...',
@@ -258,6 +325,7 @@ export default {
     toolLoading: '正在查询{tool}数据...',
     clear: '清空会话',
     clearConfirm: '确定要清空聊天记录吗？',
+    stopGenerating: '停止生成',
     copySuccess: '消息已复制到剪贴板',
     modelSwitch: '模型额度已达上限，已自动切换至备用模型',
     generateReport: '生成完整数据报告',
@@ -409,5 +477,40 @@ export default {
       emptyTitle: '先从左侧选择事件',
       empty: '选中事件后，这里会显示消费者状态、Replay 范围、操作按钮和最近结果。',
     },
+  },
+  category: {
+    loadFailed: '加载分类失败',
+    loadTreeFailed: '加载分类树失败',
+    createFailed: '创建分类失败',
+    updateFailed: '更新分类失败',
+    deleteFailed: '删除分类失败',
+  },
+  reminders: {
+    title: '提醒中心',
+    description: '集中处理待跟进、待确认和系统提醒事项。',
+    permissionTitle: '提醒中心权限不足',
+    permissionDesc: '当前账号没有 notifications:read 权限。',
+    unreadCount: '未处理提醒',
+    unreadHint: '已读表示当前提醒已被查看，不会改写原业务事实。',
+    markAllRead: '全部标记已读',
+    emptyTitle: '当前没有待处理提醒',
+    emptyDesc: '新的订单、通知或异常事件会在这里集中展示。',
+    markRead: '标记已读',
+    untitled: '未命名提醒',
+    noContent: '暂无补充说明',
+  },
+  permissionDenied: {
+    title: '访问受限',
+    description: '当前账号缺少访问该资源所需权限，请联系管理员分配权限后重试。',
+    requiredPermission: '需要权限：',
+    viewPermissionDetails: '查看权限说明',
+  },
+  tag: {
+    loadFailed: '加载标签失败',
+    assignFailed: '分配标签失败',
+    removeFailed: '移除标签失败',
+  },
+  uploader: {
+    uploadFile: '上传文件',
   },
 };

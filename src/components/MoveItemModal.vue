@@ -4,6 +4,7 @@
     :title="t('moveFile.title')"
     size="md"
     body-class="p-0 flex flex-col h-[60vh] min-h-[300px]"
+    :close-on-backdrop="false"
     @update:model-value="close"
   >
     <!-- Tree Content -->
@@ -20,7 +21,12 @@
               ? 'bg-primary/10 text-primary'
               : 'text-(--text-main) hover:bg-(--bg-hover)'
           "
+          role="button"
+          tabindex="0"
+          :aria-pressed="selectedId === rootFolder.id"
           @click="selectFolder(rootFolder)"
+          @keydown.enter.prevent="selectFolder(rootFolder)"
+          @keydown.space.prevent="selectFolder(rootFolder)"
         >
           <AppIcon
             name="home"
@@ -42,7 +48,13 @@
             isTargetDisabled(folder) ? 'cursor-not-allowed opacity-50' : '',
           ]"
           :style="{ paddingLeft: folder.level * 1.5 + 0.75 + 'rem' }"
+          :role="isTargetDisabled(folder) ? undefined : 'button'"
+          :tabindex="isTargetDisabled(folder) ? undefined : 0"
+          :aria-pressed="selectedId === folder.id"
+          :aria-disabled="isTargetDisabled(folder) || undefined"
           @click="!isTargetDisabled(folder) && selectFolder(folder)"
+          @keydown.enter.prevent="!isTargetDisabled(folder) && selectFolder(folder)"
+          @keydown.space.prevent="!isTargetDisabled(folder) && selectFolder(folder)"
         >
           <AppIcon name="folder" class="size-5 shrink-0 text-warning" />
           <span class="block truncate">{{ folder.name }}</span>

@@ -1,6 +1,9 @@
 // Product Management
 export default {
+
+  fallbackName: 'Product {id}',
   manager: {
+    createdHiddenByFilters: 'Product created, but hidden by the current filters',
     title: 'Product Catalog',
     subtitle: 'Manage your inventory and pricing',
     stats_overview: 'Stats Overview',
@@ -24,6 +27,9 @@ export default {
     back_to_detail: 'Back to Detail',
   },
   form: {
+    incomplete_variant_hint: 'This legacy variant no longer matches the current spec structure.',
+    incomplete_variants_banner: '{count} legacy variant(s) no longer match the current specs. Remove or archive them before saving.',
+    incomplete_variants_block_submit: 'Remove or archive incomplete legacy variants before saving',
     name: 'Product Name',
     name_placeholder: 'Enter product name',
     description: 'Description',
@@ -97,6 +103,7 @@ export default {
       actions: 'Actions',
     },
     variant: {
+      pending: 'Pending',
       variant_name: 'Variant',
       sku: 'SKU',
       barcode: 'Barcode',
@@ -111,6 +118,9 @@ export default {
     empty: 'No product data',
   },
   filters: {
+    stock: 'Stock',
+    inStock: 'In stock',
+    outOfStock: 'Out of stock',
     search_placeholder: 'Search name/SPU...',
     status: {
       all: 'All',
@@ -191,6 +201,16 @@ export default {
     },
   },
   import: {
+    batch: 'Batch',
+    importComplete: 'Import complete!',
+    importFailed: 'Import failed',
+    success: 'Succeeded',
+    failed: 'Failed',
+    checkConsole: 'Check the console for detailed logs',
+    selectColumn: 'Select the matching column',
+    upload_partial: 'Some images failed to match',
+    error_invalid_status: 'Unsupported status value found. Fix it before importing',
+    error_duplicate_name_without_spu: 'Multiple rows share a name without an SPU. Provide the SPU before importing',
     title: 'Import Products',
     step1_title: 'Download Template & Upload',
     step1_desc: 'Download the template, fill it in, and upload.',
@@ -273,6 +293,8 @@ export default {
       report_total: '{count} issues in total',
       row: 'Row {row}',
       issue: {
+        invalid_status: 'Unsupported status value',
+        duplicate_name_without_spu: 'Duplicate names without SPU cannot be merged safely',
         missing_name: 'Product name is empty',
         missing_sku: 'SKU is empty',
         duplicate_sku: 'Duplicate SKU',
@@ -328,6 +350,7 @@ export default {
     },
   },
   exportModal: {
+    detail_load_failed: 'Failed to load export details',
     title: 'Export Product Variants',
     format: 'Export Format',
     excel_desc: 'Advanced report style (group headers, filters, freeze panes, number formats)',
@@ -398,5 +421,19 @@ export default {
     stock: 'Stock',
     status: 'Status',
     apply: 'Apply',
+  },
+  binding: {
+    productImage: 'Product image',
+    availability: {
+      available: 'Available',
+      lowStock: 'Low stock',
+      outOfStockNoOrder: 'Out of stock (unavailable)',
+      outOfStockPreorder: 'Out of stock (preorder)',
+      archivedOptional: 'Archived (selectable)',
+      archivedNoOrder: 'Archived (unavailable)',
+    },
+  },
+  picker: {
+    productImage: 'Product image',
   },
 };
