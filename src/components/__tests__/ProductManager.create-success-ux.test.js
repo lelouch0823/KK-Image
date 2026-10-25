@@ -214,7 +214,9 @@ describe('ProductManager create success UX', () => {
     expect(wrapper.vm.confirmData.type).toBe('danger');
     expect(wrapper.vm.confirmData.onConfirm).toEqual(expect.any(Function));
 
-    await wrapper.vm.confirmData.onConfirm();
+    // b8a14fe6 弹窗错误兜底后，关闭逻辑收敛在 handleConfirm（仅成功路径
+    // 关闭）——直接调 onConfirm 不再关闭弹窗，走真实确认路径
+    await wrapper.vm.handleConfirm();
 
     expect(mocks.deleteProduct).toHaveBeenCalledWith('p-delete');
     expect(mocks.loadProducts).toHaveBeenLastCalledWith(

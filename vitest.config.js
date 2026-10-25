@@ -8,8 +8,16 @@ export default defineConfig({
     test: {
         globals: true,
         environment: 'jsdom',
+        // jsdom 27 对 opaque origin（无 URL）不再提供 localStorage/sessionStorage
+        // ——显式指定 origin，恢复 Web Storage API（存量 composable 测试依赖）
+        environmentOptions: {
+            jsdom: {
+                url: 'http://localhost/',
+            },
+        },
         clearMocks: true,
         restoreMocks: true,
+        setupFiles: ['./test/setup/jsdom-storage-polyfill.js'],
         coverage: {
             exclude: [
                 ...coverageConfigDefaults.exclude,
